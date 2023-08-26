@@ -54,6 +54,36 @@ unsafe extern "C" fn timer_interrupt(arg: *mut c_void) {
     reader.reset();
 }
 
+/// Check parity bits 25 (even) and 0 (odd)
+///
+/// Reference:
+/// https://getsafeandsound.com/blog/26-bit-wiegand-format/
+/// Calculator
+/// http://www.ccdesignworks.com/wiegand_calc.htm
+fn parity_check_26bits(mut rfid: u32) -> bool {
+    // Odd parity is checked over the rightmost 13 bits.
+    let mut count = 0;
+    for _ in 0..13 {
+        count += rfid & 1;
+        rfid >>= 1;
+    }
+    if count % 2 == 0 {
+        return false;
+    }
+
+    // Even parity is checked over the leftmost 13 bits
+    let mut count = 0;
+    for _ in 0..13 {
+        count += rfid & 1;
+        rfid >>= 1;
+    }
+    if count % 2 == 1 {
+        return false;
+    }
+
+    true
+}
+
 #[derive(Debug)]
 pub enum Packet {
     Key {
@@ -79,9 +109,18 @@ impl Packet {
                     | (data[2] as u32) << 8
                     | (data[3] as u32);
 
-                rfid &= !(1 << 31);
-                rfid >>= 7;
-                // TODO: check parity
+                // Remove padding bits
+                rfid >>= 6;
+
+                if !parity_check_26bits(rfid) {
+                    log::warn!("Parity check failed");
+                    return Self::Unknown { bits, data };
+                }
+
+                // Remove partiy check bits
+                rfid &= !(1 << 25);
+                rfid >>= 1;
+
                 Self::Card { rfid }
             }
             _ => Self::Unknown { bits, data },

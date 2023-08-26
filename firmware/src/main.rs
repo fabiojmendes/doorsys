@@ -56,6 +56,7 @@ fn setup_door(pin: impl OutputPin, door_rx: Receiver<()>) -> anyhow::Result<()> 
             log::error!("error: {}", e);
         }
     });
+
     Ok(())
 }
 
