@@ -13,7 +13,11 @@ use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::mqtt::client::EspMqttClient;
 use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs, NvsDefault};
 use esp_idf_svc::systime::EspSystemTime;
-use esp_idf_sys::{esp, esp_get_free_heap_size, gpio_install_isr_service, ESP_INTR_FLAG_IRAM};
+use esp_idf_sys::{
+    esp, gpio_install_isr_service, heap_caps_get_free_size, heap_caps_get_largest_free_block,
+    heap_caps_get_minimum_free_size, heap_caps_get_total_size, ESP_INTR_FLAG_IRAM,
+    MALLOC_CAP_DEFAULT,
+};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::{thread, time::Duration};
@@ -121,15 +125,22 @@ fn health_check(mut mqtt_client: EspMqttClient) -> anyhow::Result<()> {
     let systime = EspSystemTime {};
 
     thread::spawn(move || loop {
-        thread::sleep(Duration::from_secs(60));
-        let heap_size = unsafe { esp_get_free_heap_size() };
-        let status = format!("doorsys heap={heap_size} {}", systime.now().as_millis());
-        log::info!("{}", status);
+        let time = systime.now().as_nanos();
+        let heap = unsafe {
+            let total = heap_caps_get_total_size(MALLOC_CAP_DEFAULT);
+            let free = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
+            let minimum = heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT);
+            let largest_free = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
+            format!("heap,host=doorsys free={free},total={total},minimum={minimum},largest_free={largest_free} {time}")
+        };
+        log::info!("{}", heap);
         if let Err(e) =
-            mqtt_client.enqueue("doorsys/status", QoS::AtMostOnce, false, status.as_bytes())
+            mqtt_client.enqueue("doorsys/status", QoS::AtMostOnce, false, heap.as_bytes())
         {
-            log::warn!("mqtt publish error: {}", e);
+            log::warn!("mqtt enqueue error: {}", e);
         }
+
+        thread::sleep(Duration::from_secs(60));
     });
 
     Ok(())
