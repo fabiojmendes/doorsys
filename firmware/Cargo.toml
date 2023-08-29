@@ -44,7 +44,9 @@ embassy = [
 ]
 
 [dependencies]
+doorsys-protocol = { path = "../protocol" }
 anyhow = "1"
+bincode = "2.0.0-rc.3"
 log = { version = "0.4.17", default-features = false }
 esp-idf-sys = { version = "0.33", default-features = false }
 esp-idf-hal = { version = "0.41", optional = true, default-features = false }

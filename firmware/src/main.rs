@@ -2,9 +2,11 @@
 
 mod buttons;
 mod door;
+mod mqtt;
 mod network;
 mod wiegand;
 
+use doorsys_protocol::Audit;
 use embedded_svc::mqtt::client::QoS;
 use esp_idf_hal as _;
 use esp_idf_hal::gpio::OutputPin;
@@ -64,12 +66,18 @@ fn setup_door(pin: impl OutputPin, door_rx: Receiver<()>) -> anyhow::Result<()> 
     Ok(())
 }
 
-fn setup_reader(door_tx: Sender<()>, nvs: Arc<Mutex<EspNvs<NvsDefault>>>) -> anyhow::Result<()> {
+fn setup_reader(
+    door_tx: Sender<()>,
+    nvs: Arc<Mutex<EspNvs<NvsDefault>>>,
+    audit_tx: Sender<Audit>,
+) -> anyhow::Result<()> {
     thread::spawn(move || {
         let mut reader = Reader::new(GPIO_D0, GPIO_D1);
         reader.start().unwrap();
 
         let mut keys = Vec::with_capacity(MAX_PIN_LENGTH);
+
+        let systime = EspSystemTime {};
 
         // Reads the queue in a loop.
         for packet in reader {
@@ -80,10 +88,21 @@ fn setup_reader(door_tx: Sender<()>, nvs: Arc<Mutex<EspNvs<NvsDefault>>>) -> any
                         let pin: String = keys.iter().cloned().map(|i: u8| i.to_string()).collect();
                         let contains = { nvs.lock().unwrap().get_u8(&pin) };
                         log::info!("contains pin: {:?}", contains);
+                        let mut audit = Audit {
+                            code: pin.parse().unwrap(),
+                            timestamp: systime.now(),
+                            success: false,
+                        };
                         match contains {
-                            Ok(Some(_)) => door_tx.send(()).unwrap(),
+                            Ok(Some(_)) => {
+                                door_tx.send(()).unwrap();
+                                audit.success = true;
+                            }
                             Ok(None) => log::warn!("invalid pin: {}", &pin),
                             Err(e) => log::error!("error reading nvs {}", e),
+                        }
+                        if let Err(e) = audit_tx.send(audit) {
+                            log::error!("error sending audit record: {}", e);
                         }
                         keys.clear();
                     } else if keys.len() == MAX_PIN_LENGTH {
@@ -95,13 +114,24 @@ fn setup_reader(door_tx: Sender<()>, nvs: Arc<Mutex<EspNvs<NvsDefault>>>) -> any
                 }
                 Ok(Packet::Card { rfid }) => {
                     log::info!("RFID: {}", rfid);
+                    let mut audit = Audit {
+                        code: rfid,
+                        timestamp: systime.now(),
+                        success: false,
+                    };
 
                     let rfid_str = rfid.to_string();
                     let contains = { nvs.lock().unwrap().get_u8(&rfid_str) };
                     match contains {
-                        Ok(Some(_)) => door_tx.send(()).unwrap(),
+                        Ok(Some(_)) => {
+                            door_tx.send(()).unwrap();
+                            audit.success = true;
+                        }
                         Ok(None) => log::warn!("invalid card id: {}", &rfid_str),
                         Err(e) => log::error!("error reading nvs {}", e),
+                    }
+                    if let Err(e) = audit_tx.send(audit) {
+                        log::error!("error sending audit record: {}", e);
                     }
                     keys.clear();
                 }
@@ -121,7 +151,31 @@ fn setup_reader(door_tx: Sender<()>, nvs: Arc<Mutex<EspNvs<NvsDefault>>>) -> any
     Ok(())
 }
 
-fn health_check(mut mqtt_client: EspMqttClient) -> anyhow::Result<()> {
+fn setup_audit_publiher(mqtt_client: Arc<Mutex<EspMqttClient>>, audit_rx: Receiver<Audit>) {
+    thread::spawn(move || {
+        let config = bincode::config::standard();
+
+        for audit in audit_rx {
+            match bincode::encode_to_vec(audit, config) {
+                Ok(buffer) => {
+                    if let Err(e) = mqtt_client.lock().unwrap().enqueue(
+                        "doorsys/audit",
+                        QoS::AtLeastOnce,
+                        false,
+                        &buffer,
+                    ) {
+                        log::error!("error sending audit: {}", e);
+                    }
+                }
+                Err(e) => {
+                    log::error!("error encoding audit: {}", e);
+                }
+            }
+        }
+    });
+}
+
+fn health_check(mqtt_client: Arc<Mutex<EspMqttClient>>) -> anyhow::Result<()> {
     let systime = EspSystemTime {};
 
     thread::spawn(move || loop {
@@ -134,9 +188,12 @@ fn health_check(mut mqtt_client: EspMqttClient) -> anyhow::Result<()> {
             format!("heap,host=doorsys free={free},total={total},minimum={minimum},largest_free={largest_free} {time}")
         };
         log::info!("{}", heap);
-        if let Err(e) =
-            mqtt_client.enqueue("doorsys/status", QoS::AtMostOnce, false, heap.as_bytes())
-        {
+        if let Err(e) = mqtt_client.lock().unwrap().enqueue(
+            "doorsys/status",
+            QoS::AtMostOnce,
+            false,
+            heap.as_bytes(),
+        ) {
             log::warn!("mqtt enqueue error: {}", e);
         }
 
@@ -169,13 +226,19 @@ fn main() -> anyhow::Result<()> {
 
     setup_button(door_tx.clone());
 
-    setup_reader(door_tx.clone(), doorsys_nvs.clone())?;
+    let (audit_tx, audit_rx) = mpsc::channel();
+    setup_reader(door_tx.clone(), doorsys_nvs.clone(), audit_tx)?;
 
     network::setup_wireless(peripherals.modem, sysloop.clone(), nvs_part.clone())?;
 
-    let mqtt_client = network::setup_mqtt(doorsys_nvs.clone(), door_tx.clone())?;
+    let mqtt_client = Arc::new(Mutex::new(mqtt::setup_mqtt(
+        doorsys_nvs.clone(),
+        door_tx.clone(),
+    )?));
 
-    health_check(mqtt_client)?;
+    setup_audit_publiher(mqtt_client.clone(), audit_rx);
+
+    health_check(mqtt_client.clone())?;
 
     log::info!("Application fully functional");
 
