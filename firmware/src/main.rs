@@ -22,6 +22,7 @@ use esp_idf_sys::{
 };
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
+use std::time::SystemTime;
 use std::{thread, time::Duration};
 use wiegand::Packet;
 
@@ -77,8 +78,6 @@ fn setup_reader(
 
         let mut keys = Vec::with_capacity(MAX_PIN_LENGTH);
 
-        let systime = EspSystemTime {};
-
         // Reads the queue in a loop.
         for packet in reader {
             match packet {
@@ -89,8 +88,8 @@ fn setup_reader(
                         let contains = { nvs.lock().unwrap().get_u8(&pin) };
                         log::info!("contains pin: {:?}", contains);
                         let mut audit = Audit {
-                            code: pin.parse().unwrap(),
-                            timestamp: systime.now(),
+                            code: pin.clone(),
+                            timestamp: SystemTime::now(),
                             success: false,
                         };
                         match contains {
@@ -115,8 +114,8 @@ fn setup_reader(
                 Ok(Packet::Card { rfid }) => {
                     log::info!("RFID: {}", rfid);
                     let mut audit = Audit {
-                        code: rfid,
-                        timestamp: systime.now(),
+                        code: rfid.to_string(),
+                        timestamp: SystemTime::now(),
                         success: false,
                     };
 
