@@ -9,7 +9,6 @@ use axum::{
 use serde_json::json;
 use sqlx::PgPool;
 
-pub mod admin;
 pub mod code;
 pub mod user;
 

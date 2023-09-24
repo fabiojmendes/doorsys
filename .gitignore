@@ -16,3 +16,6 @@ Cargo.lock
 
 # Ignore env files
 .env
+
+# Ignore IntelliJ Files
+.idea
