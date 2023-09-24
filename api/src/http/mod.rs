@@ -56,10 +56,13 @@ pub async fn serve(pool: PgPool) -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/", get(health))
-        .route("/users", get(user::list_users_codes).post(user::add_user))
-        .route("/users/:id", get(user::get_user).put(user::update_user))
-        .route("/codes", post(code::add_code).delete(code::delete_code))
-        .route("/codes/:id", get(code::get_code).delete(code::delete_code))
+        .route("/users", get(user::list).post(user::create))
+        .route("/users/:id", get(user::get).put(user::update))
+        .route("/codes", post(code::create))
+        .route(
+            "/codes/:id",
+            get(code::get).delete(code::delete).put(code::update),
+        )
         .with_state(app_state);
 
     Server::bind(&"127.0.0.1:3000".parse()?)

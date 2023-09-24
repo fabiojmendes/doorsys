@@ -13,7 +13,7 @@ pub struct UserForm {
     pub email: String,
 }
 
-pub async fn add_user(
+pub async fn create(
     State(pool): State<PgPool>,
     Form(user_form): Form<UserForm>,
 ) -> HttpResult<Json<User>> {
@@ -29,7 +29,7 @@ pub async fn add_user(
     Ok(Json(user))
 }
 
-pub async fn update_user(
+pub async fn update(
     State(pool): State<PgPool>,
     Path(id): Path<i64>,
     Form(user_form): Form<UserForm>,
@@ -47,7 +47,7 @@ pub async fn update_user(
     Ok(Json(user))
 }
 
-pub async fn get_user(State(pool): State<PgPool>, Path(id): Path<i64>) -> HttpResult<Json<User>> {
+pub async fn get(State(pool): State<PgPool>, Path(id): Path<i64>) -> HttpResult<Json<User>> {
     let user = sqlx::query_file_as!(User, "queries/user_select.sql", id,)
         .fetch_one(&pool)
         .await?;
@@ -55,7 +55,7 @@ pub async fn get_user(State(pool): State<PgPool>, Path(id): Path<i64>) -> HttpRe
     Ok(Json(user))
 }
 
-pub async fn list_users_codes(State(pool): State<PgPool>) -> HttpResult<Json<Vec<UserCode>>> {
+pub async fn list(State(pool): State<PgPool>) -> HttpResult<Json<Vec<UserCode>>> {
     let users = sqlx::query_file_as!(UserCode, "queries/users_codes.sql")
         .fetch_all(&pool)
         .await?;
