@@ -1,1 +1,1 @@
-delete from code where id = $1
+delete from code where code = $1

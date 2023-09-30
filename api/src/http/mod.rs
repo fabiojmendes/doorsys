@@ -1,3 +1,4 @@
+use crate::domain::{code::CodeRepository, user::UserRepository};
 use anyhow::Context;
 use axum::{
     extract::{FromRef, State},
@@ -8,6 +9,7 @@ use axum::{
 };
 use serde_json::json;
 use sqlx::PgPool;
+use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 pub mod code;
 pub mod user;
@@ -15,11 +17,25 @@ pub mod user;
 #[derive(Clone)]
 pub struct AppState {
     pub pool: PgPool,
+    pub user_repo: UserRepository,
+    pub code_repo: CodeRepository,
 }
 
 impl FromRef<AppState> for PgPool {
     fn from_ref(input: &AppState) -> Self {
         input.pool.clone()
+    }
+}
+
+impl FromRef<AppState> for UserRepository {
+    fn from_ref(input: &AppState) -> Self {
+        input.user_repo.clone()
+    }
+}
+
+impl FromRef<AppState> for CodeRepository {
+    fn from_ref(input: &AppState) -> Self {
+        input.code_repo.clone()
     }
 }
 
@@ -51,17 +67,28 @@ where
 }
 
 pub async fn serve(pool: PgPool) -> anyhow::Result<()> {
-    let app_state = AppState { pool };
+    let user_repo = UserRepository { pool: pool.clone() };
+    let code_repo = CodeRepository { pool: pool.clone() };
+    let app_state = AppState {
+        pool,
+        user_repo,
+        code_repo,
+    };
+
+    tracing_subscriber::fmt::init();
 
     let app = Router::new()
         .route("/", get(health))
         .route("/users", get(user::list).post(user::create))
         .route("/users/:id", get(user::get).put(user::update))
+        .route("/users/:id/codes", get(code::list))
         .route("/codes", post(code::create))
         .route(
-            "/codes/:id",
+            "/codes/:code",
             get(code::get).delete(code::delete).put(code::update),
         )
+        .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive())
         .with_state(app_state);
 
     Server::bind(&"127.0.0.1:3000".parse()?)

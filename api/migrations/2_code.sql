@@ -1,7 +1,9 @@
 -- Add migration script here
 
+-- create type CodeType as enum('pin', 'fob');
+
 create table code (
-  id bigserial primary key,
-  user_id bigint references users,
-  code varchar unique not null
+  code varchar primary key,
+  user_id bigint not null references users,
+  code_type varchar not null
 );

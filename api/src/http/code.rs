@@ -1,63 +1,53 @@
 use super::HttpResult;
-use crate::domain::Code;
+use crate::domain::code::{Code, CodeRepository};
 use axum::{
     extract::{Path, State},
-    Form, Json,
+    Json,
 };
-use serde::Deserialize;
-use sqlx::PgPool;
 
-#[derive(Debug, Deserialize)]
-pub struct CodeForm {
-    user_id: i64,
-    code: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UpdateCodeForm {
-    code: String,
-}
+// #[derive(Debug, Deserialize)]
+// #[serde(rename_all = "camelCase")]
+// pub struct CodeForm {
+//     code: String,
+// }
 
 pub async fn create(
-    State(pool): State<PgPool>,
-    Form(code_form): Form<CodeForm>,
+    State(code_repo): State<CodeRepository>,
+    Json(code): Json<Code>,
 ) -> HttpResult<Json<Code>> {
-    let code = sqlx::query_file_as!(
-        Code,
-        "queries/code_insert.sql",
-        &code_form.user_id,
-        &code_form.code
-    )
-    .fetch_one(&pool)
-    .await?;
-
+    let code = code_repo.create(code).await?;
     Ok(Json(code))
 }
 
-pub async fn get(State(pool): State<PgPool>, Path(id): Path<i64>) -> HttpResult<Json<Code>> {
-    let code = sqlx::query_file_as!(Code, "queries/code_select.sql", id)
-        .fetch_one(&pool)
-        .await?;
-
+pub async fn get(
+    State(code_repo): State<CodeRepository>,
+    Path(code): Path<String>,
+) -> HttpResult<Json<Code>> {
+    let code = code_repo.fetch_one(&code).await?;
     Ok(Json(code))
+}
+
+pub async fn list(
+    State(code_repo): State<CodeRepository>,
+    Path(user_id): Path<i64>,
+) -> HttpResult<Json<Vec<Code>>> {
+    let code_list = code_repo.fetch_all(user_id).await?;
+    Ok(Json(code_list))
 }
 
 pub async fn update(
-    State(pool): State<PgPool>,
-    Path(id): Path<i64>,
-    Form(form): Form<UpdateCodeForm>,
+    State(code_repo): State<CodeRepository>,
+    Path(old_code): Path<String>,
+    Json(new_code): Json<String>,
 ) -> HttpResult<Json<Code>> {
-    let code = sqlx::query_file_as!(Code, "queries/code_update.sql", &form.code, id)
-        .fetch_one(&pool)
-        .await?;
-
+    let code = code_repo.update(&old_code, &new_code).await?;
     Ok(Json(code))
 }
 
-pub async fn delete(State(pool): State<PgPool>, Path(id): Path<i64>) -> HttpResult<()> {
-    sqlx::query_file!("queries/code_delete.sql", id)
-        .execute(&pool)
-        .await?;
-
+pub async fn delete(
+    State(code_repo): State<CodeRepository>,
+    Path(code): Path<String>,
+) -> HttpResult<()> {
+    code_repo.delete(&code).await?;
     Ok(())
 }
