@@ -1,4 +1,6 @@
-use crate::domain::{code::CodeRepository, user::UserRepository};
+use crate::domain::{
+    code::CodeRepository, customer::CustomerRepository, entry_log::EntryLogRepository,
+};
 use anyhow::Context;
 use axum::{
     extract::{FromRef, State},
@@ -11,14 +13,16 @@ use serde_json::json;
 use sqlx::PgPool;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
-pub mod code;
-pub mod user;
+pub mod code_handler;
+pub mod customer_handler;
+pub mod entry_handler;
 
 #[derive(Clone)]
 pub struct AppState {
     pub pool: PgPool,
-    pub user_repo: UserRepository,
+    pub customer_repo: CustomerRepository,
     pub code_repo: CodeRepository,
+    pub entry_log_repo: EntryLogRepository,
 }
 
 impl FromRef<AppState> for PgPool {
@@ -27,15 +31,21 @@ impl FromRef<AppState> for PgPool {
     }
 }
 
-impl FromRef<AppState> for UserRepository {
+impl FromRef<AppState> for CustomerRepository {
     fn from_ref(input: &AppState) -> Self {
-        input.user_repo.clone()
+        input.customer_repo.clone()
     }
 }
 
 impl FromRef<AppState> for CodeRepository {
     fn from_ref(input: &AppState) -> Self {
         input.code_repo.clone()
+    }
+}
+
+impl FromRef<AppState> for EntryLogRepository {
+    fn from_ref(input: &AppState) -> Self {
+        input.entry_log_repo.clone()
     }
 }
 
@@ -53,6 +63,8 @@ impl IntoResponse for AppError {
             "msg": format!("{}", self.0)
         });
 
+        tracing::error!("request error: {:?}", self);
+
         (status, payload.to_string()).into_response()
     }
 }
@@ -67,26 +79,35 @@ where
 }
 
 pub async fn serve(pool: PgPool) -> anyhow::Result<()> {
-    let user_repo = UserRepository { pool: pool.clone() };
+    let customer_repo = CustomerRepository { pool: pool.clone() };
     let code_repo = CodeRepository { pool: pool.clone() };
+    let entry_log_repo = EntryLogRepository { pool: pool.clone() };
     let app_state = AppState {
         pool,
-        user_repo,
+        customer_repo,
         code_repo,
+        entry_log_repo,
     };
-
-    tracing_subscriber::fmt::init();
 
     let app = Router::new()
         .route("/", get(health))
-        .route("/users", get(user::list).post(user::create))
-        .route("/users/:id", get(user::get).put(user::update))
-        .route("/users/:id/codes", get(code::list))
-        .route("/codes", post(code::create))
+        .route(
+            "/customers",
+            get(customer_handler::list).post(customer_handler::create),
+        )
+        .route(
+            "/customers/:id",
+            get(customer_handler::get).put(customer_handler::update),
+        )
+        .route("/customers/:id/codes", get(code_handler::list))
+        .route("/codes", post(code_handler::create))
         .route(
             "/codes/:code",
-            get(code::get).delete(code::delete).put(code::update),
+            get(code_handler::get)
+                .delete(code_handler::delete)
+                .put(code_handler::update),
         )
+        .route("/entry_logs", get(entry_handler::list))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(app_state);

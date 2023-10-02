@@ -15,7 +15,7 @@ Cargo.lock
 *.pdb
 
 # Ignore env files
-.env
+.env*
 
 # Ignore IntelliJ Files
 .idea

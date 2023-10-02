@@ -7,7 +7,9 @@ use sqlx::postgres::PgPoolOptions;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    println!("Starting Server");
+    tracing_subscriber::fmt::init();
+
+    tracing::info!("Starting Server");
 
     let pool = PgPoolOptions::new()
         .max_connections(10)
