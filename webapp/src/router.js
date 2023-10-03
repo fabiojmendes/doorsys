@@ -9,15 +9,15 @@ const router = createRouter({
     },
     {
       path: '/customers',
-      component: () => import('../views/CustomerListView.vue')
+      component: () => import('@/views/CustomerListView.vue')
     },
     {
       path: '/customers/:id',
-      component: () => import('../views/CustomerView.vue')
+      component: () => import('@/views/CustomerView.vue')
     },
     {
       path: '/logs',
-      component: () => import('../views/EntryLogView.vue')
+      component: () => import('@/views/EntryLogView.vue')
     }
   ]
 })
