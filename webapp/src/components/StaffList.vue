@@ -1,6 +1,8 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const props = defineProps({ customer: Object })
 
 const staff = ref([
@@ -9,6 +11,7 @@ const staff = ref([
   { id: 3, name: 'Staff 3', phone: '(111) 222 3344', pin: '9012', fob: '192038102938' }
 ])
 
+const formName = ref({})
 const newStaff = ref({})
 
 onMounted(async () => {})
@@ -16,25 +19,28 @@ onMounted(async () => {})
 async function addStaffMember() {
   console.log(newStaff.value)
   staff.value.push(newStaff.value)
+  newStaff.value = {}
+  formName.value.focus()
 }
 </script>
 
 <template>
-  <div class="container">
+  <div class="border rounded p-3">
     <h5>Staff Members</h5>
     <form class="row row-cols-lg-auto g-3" @submit.prevent="addStaffMember">
-      <div class="col-4">
+      <div class="col-12">
         <div class="input-group input-group-sm mb-3">
           <input
             v-model="newStaff.name"
             type="text"
             class="form-control form-control-sm"
             placeholder="Name"
+            ref="formName"
             required
           />
         </div>
       </div>
-      <div class="col-3">
+      <div class="col-12">
         <div class="input-group input-group-sm mb-3">
           <input
             v-model="newStaff.phone"
@@ -45,7 +51,7 @@ async function addStaffMember() {
           />
         </div>
       </div>
-      <div class="col">
+      <div class="col-12">
         <div class="input-group input-group-sm mb-3">
           <input
             v-model="newStaff.fob"
@@ -56,28 +62,29 @@ async function addStaffMember() {
         </div>
       </div>
       <div class="col">
-        <button type="submit" class="btn btn-primary btn-sm">Add</button>
+        <div class="input-group input-group-sm mb-3">
+          <input type="submit" class="btn btn-primary btn-sm" value="Add" />
+        </div>
       </div>
     </form>
-    <ul class="list-group">
-      <li
-        v-for="s in staff"
-        class="list-group-item d-flex justify-content-between align-items-center"
-      >
-        <span>
-          {{ s.name }} <small class="text-body-secondary">{{ s.phone }}</small>
-        </span>
-        <span>
-          <span v-if="s.fob" class="ms-1 badge bg-primary rounded-pill">fob</span>
-          <span v-if="s.pin" class="ms-1 badge bg-primary rounded-pill">pin</span>
-        </span>
-      </li>
-    </ul>
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th class="text-end">Fob/Pin</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr @click="router.push(`/staff/${s.id}`)" v-for="s in staff">
+          <td>{{ s.name }}</td>
+          <td>{{ s.phone }}</td>
+          <td class="text-end">
+            <i v-if="s.fob" class="ms-2 bi bi-tag" title="Staff has fob"></i>
+            <i v-if="s.pin" class="ms-2 bi bi-123" title="Staff has pin"></i>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>
-
-<style>
-.rounded-pill {
-  cursor: pointer;
-}
-</style>

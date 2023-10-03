@@ -39,9 +39,3 @@ function openCustomer(id) {
     </table>
   </div>
 </template>
-
-<style>
-tbody tr {
-  cursor: pointer;
-}
-</style>

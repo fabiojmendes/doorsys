@@ -1,0 +1,7 @@
+table.table-hover tbody tr {
+  cursor: pointer;
+}
+
+.main-container {
+  max-width: 45rem;
+}

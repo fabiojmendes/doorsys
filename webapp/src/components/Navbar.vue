@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 
 <template>
   <nav class="navbar navbar-expand-lg bg-dark" data-bs-theme="dark">
-    <div class="container">
+    <div class="container main-container">
       <RouterLink class="navbar-brand" to="/">Doorsys</RouterLink>
       <button
         class="navbar-toggler"
@@ -27,5 +27,3 @@ import { RouterLink } from 'vue-router'
     </div>
   </nav>
 </template>
-
-<style scoped></style>
