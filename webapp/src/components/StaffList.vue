@@ -27,32 +27,39 @@ async function addStaffMember() {
 <template>
   <div class="border rounded p-3">
     <h5>Staff Members</h5>
-    <form class="row row-cols-lg-auto g-3" @submit.prevent="addStaffMember">
-      <div class="col-12">
-        <div class="input-group input-group-sm mb-3">
+    <form @submit.prevent="addStaffMember">
+      <div class="row g-3 mb-3">
+        <div class="col input-group input-group-sm">
+          <span class="input-group-text">
+            <i class="bi bi-person"></i>
+          </span>
           <input
             v-model="newStaff.name"
+            ref="formName"
             type="text"
             class="form-control form-control-sm"
             placeholder="Name"
-            ref="formName"
-            required
+            required="true"
           />
         </div>
       </div>
-      <div class="col-12">
-        <div class="input-group input-group-sm mb-3">
+      <div class="row g-3 mb-3">
+        <div class="col input-group input-group-sm">
+          <span class="input-group-text">
+            <i class="bi bi-telephone"></i>
+          </span>
           <input
             v-model="newStaff.phone"
             type="text"
             class="form-control form-control-sm"
             placeholder="Phone"
-            required
+            required="true"
           />
         </div>
-      </div>
-      <div class="col-12">
-        <div class="input-group input-group-sm mb-3">
+        <div class="col input-group input-group-sm">
+          <span class="input-group-text">
+            <i class="bi bi-tag" title="Staff has fob"></i>
+          </span>
           <input
             v-model="newStaff.fob"
             type="text"
@@ -61,11 +68,10 @@ async function addStaffMember() {
           />
         </div>
       </div>
-      <div class="col">
-        <div class="input-group input-group-sm mb-3">
-          <input type="submit" class="btn btn-primary btn-sm" value="Add" />
-        </div>
-      </div>
+      <p class="text-end">
+        <input type="reset" class="btn btn-secondary btn-sm" value="Reset" />
+        <input type="submit" class="btn btn-primary btn-sm ms-2" value="Add" />
+      </p>
     </form>
     <table class="table table-hover">
       <thead>
@@ -78,7 +84,7 @@ async function addStaffMember() {
       <tbody>
         <tr @click="router.push(`/staff/${s.id}`)" v-for="s in staff">
           <td>{{ s.name }}</td>
-          <td>{{ s.phone }}</td>
+          <td class="text-secondary">{{ s.phone }}</td>
           <td class="text-end">
             <i v-if="s.fob" class="ms-2 bi bi-tag" title="Staff has fob"></i>
             <i v-if="s.pin" class="ms-2 bi bi-123" title="Staff has pin"></i>

@@ -1,8 +1,12 @@
 <script setup>
 import { inject, onMounted, ref } from 'vue'
 
-const api = inject('api')
+const LABELS = {
+  pin: '123',
+  fob: 'tag'
+}
 
+const api = inject('api')
 const entries = ref([])
 
 onMounted(async () => {
@@ -10,7 +14,8 @@ onMounted(async () => {
   entries.value = res.data.map((item) => {
     return {
       ...item,
-      created: new Date(item.created)
+      created: new Date(item.created),
+      codeTypeLabel: LABELS[item.codeType]
     }
   })
 })
@@ -20,14 +25,23 @@ onMounted(async () => {
   <table class="table table-striped">
     <thead>
       <tr>
-        <th>Code</th>
+        <th>Name</th>
         <th>Date</th>
+        <th>Attributes</th>
       </tr>
     </thead>
     <tbody>
       <tr v-for="e in entries">
-        <td>{{ e.code }}</td>
+        <td>{{ e.name }}</td>
         <td>{{ e.created.toLocaleString() }}</td>
+        <td>
+          <i
+            v-if="e.success"
+            :class="`bi bi-${e.codeTypeLabel}`"
+            :title="`Entry using ${e.codeType}`"
+          ></i>
+          <i v-else class="text-danger bi bi-exclamation-octagon"></i>
+        </td>
       </tr>
     </tbody>
   </table>

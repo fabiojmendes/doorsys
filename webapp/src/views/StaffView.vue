@@ -25,8 +25,8 @@ async function save() {
   staff.value = res.data
 }
 
-async function regeneratePin() {
-  const confirmed = confirm(`Regenerate pin for ${staff.value.name}`)
+async function resetPin() {
+  const confirmed = confirm(`Reset pin for ${staff.value.name}?`)
   console.log('Regenerate pin', confirmed)
 }
 </script>
@@ -56,7 +56,7 @@ async function regeneratePin() {
         </div>
         <div class="input-group mb-3">
           <input type="text" v-model="staff.pin" class="form-control" readonly />
-          <button type="button" class="btn btn-outline-danger" @click="regeneratePin">
+          <button type="button" class="btn btn-outline-danger" title="Reset Pin" @click="resetPin">
             <i class="bi bi-arrow-clockwise"></i>
           </button>
         </div>
