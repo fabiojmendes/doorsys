@@ -3,9 +3,8 @@ import { RouterLink } from 'vue-router'
 </script>
 
 <template>
-  <nav class="navbar navbar-expand-lg bg-dark" data-bs-theme="dark">
+  <nav class="navbar navbar-expand-sm bg-dark" data-bs-theme="dark">
     <div class="container main-container">
-      <RouterLink class="navbar-brand" to="/">Doorsys</RouterLink>
       <button
         class="navbar-toggler"
         type="button"
@@ -15,14 +14,11 @@ import { RouterLink } from 'vue-router'
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="main-menu">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item">
-            <RouterLink class="nav-link" to="/customers">Customers</RouterLink>
-          </li>
-          <li class="nav-item">
-            <RouterLink class="nav-link" to="/logs">Logs</RouterLink>
-          </li>
-        </ul>
+        <div class="navbar-nav">
+          <RouterLink class="navbar-brand" to="/">Doorsys</RouterLink>
+          <RouterLink class="nav-item nav-link" to="/customers">Customers</RouterLink>
+          <RouterLink class="nav-item nav-link" to="/logs">Logs</RouterLink>
+        </div>
       </div>
     </div>
   </nav>

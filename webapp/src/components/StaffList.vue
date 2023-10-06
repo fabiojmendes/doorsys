@@ -64,14 +64,14 @@ async function addStaffMember() {
             v-model="newStaff.fob"
             type="text"
             class="form-control form-control-sm"
-            placeholder="Fob"
+            placeholder="Fob (Optional)"
           />
         </div>
       </div>
-      <p class="text-end">
+      <div class="text-end">
         <input type="reset" class="btn btn-secondary btn-sm" value="Reset" />
         <input type="submit" class="btn btn-primary btn-sm ms-2" value="Add" />
-      </p>
+      </div>
     </form>
     <table class="table table-hover">
       <thead>
