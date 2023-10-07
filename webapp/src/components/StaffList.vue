@@ -65,6 +65,7 @@ async function addStaffMember() {
             type="text"
             class="form-control form-control-sm"
             placeholder="Fob (Optional)"
+            pattern="\d{8}"
           />
         </div>
       </div>

@@ -48,14 +48,20 @@ async function resetPin() {
         </div>
         <div class="mb-3">
           <label for="fob" class="form-label">Fob</label>
-          <input type="text" v-model="staff.fob" class="form-control" />
+          <input
+            type="text"
+            v-model="staff.fob"
+            class="form-control"
+            placeholder="(Optional)"
+            pattern="\d{8}"
+          />
         </div>
         <div>
           <label for="pin" class="form-label">Pin</label>
         </div>
         <div class="input-group mb-3">
-          <input type="text" v-model="staff.pin" class="form-control" readonly />
-          <button type="button" class="btn btn-outline-danger" title="Reset Pin" @click="resetPin">
+          <input type="text" v-model="staff.pin" class="form-control text-secondary" readonly />
+          <button type="button" class="btn btn-outline-primary" title="Reset Pin" @click="resetPin">
             <i class="bi bi-arrow-clockwise"></i>
           </button>
         </div>
