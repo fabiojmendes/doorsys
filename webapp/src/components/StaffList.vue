@@ -1,24 +1,24 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { inject, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const api = inject('api')
 const props = defineProps({ customer: Object })
 
-const staff = ref([
-  { id: 1, name: 'Staff 1', phone: '(111) 222 3344', pin: '1234' },
-  { id: 2, name: 'Staff 2', phone: '(111) 222 3344', pin: '5678' },
-  { id: 3, name: 'Staff 3', phone: '(111) 222 3344', pin: '9012', fob: '192038102938' }
-])
-
+const staffList = ref([])
 const formName = ref({})
 const newStaff = ref({})
 
-onMounted(async () => {})
+onMounted(async () => {
+  const res = await api.get(`/customers/${props.customer.id}/staff`)
+  staffList.value = res.data
+})
 
 async function addStaffMember() {
   console.log(newStaff.value)
-  staff.value.push(newStaff.value)
+  const res = await api.post('/staff', { customerId: props.customer.id, ...newStaff.value })
+  staffList.value.push(res.data)
   newStaff.value = {}
   formName.value.focus()
 }
@@ -82,7 +82,7 @@ async function addStaffMember() {
         </tr>
       </thead>
       <tbody>
-        <tr @click="router.push(`/staff/${s.id}`)" v-for="s in staff">
+        <tr @click="router.push(`/staff/${s.id}`)" v-for="s in staffList">
           <td>{{ s.name }}</td>
           <td class="text-secondary">{{ s.phone }}</td>
           <td class="text-end">

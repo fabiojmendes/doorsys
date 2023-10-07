@@ -12,12 +12,8 @@ onMounted(loadStaff)
 
 async function loadStaff() {
   const id = route.params.id
-  try {
-    const res = await api.get(`/staff/${id}`)
-    staff.value = res.data
-  } catch (e) {
-    console.log('error:')
-  }
+  const res = await api.get(`/staff/${id}`)
+  staff.value = res.data
 }
 
 async function save() {
@@ -27,7 +23,10 @@ async function save() {
 
 async function resetPin() {
   const confirmed = confirm(`Reset pin for ${staff.value.name}?`)
-  console.log('Regenerate pin', confirmed)
+  if (confirmed) {
+    const res = await api.post(`/staff/${staff.value.id}/pin`)
+    staff.value = res.data
+  }
 }
 </script>
 
