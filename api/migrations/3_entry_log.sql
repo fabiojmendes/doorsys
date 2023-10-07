@@ -2,9 +2,10 @@
 
 create table entry_log (
   id bigserial primary key,
-  code varchar not null references code,
+  staff_id bigint not null references staff,
+  code varchar not null,
   created timestamptz not null default current_timestamp
 );
 
-create index entry_log_code_idx on entry_log using btree(code);
+create index entry_log_staff_idx on entry_log using btree(staff_id);
 create index entry_log_created_idx on entry_log using btree(created);

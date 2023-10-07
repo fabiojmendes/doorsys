@@ -1,5 +1,5 @@
 use crate::domain::{
-    code::CodeRepository, customer::CustomerRepository, entry_log::EntryLogRepository,
+    customer::CustomerRepository, entry_log::EntryLogRepository, staff::StaffRepository,
 };
 use anyhow::Context;
 use axum::{
@@ -13,15 +13,15 @@ use serde_json::json;
 use sqlx::PgPool;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
-pub mod code_handler;
 pub mod customer_handler;
 pub mod entry_handler;
+pub mod staff_handler;
 
 #[derive(Clone)]
 pub struct AppState {
     pub pool: PgPool,
     pub customer_repo: CustomerRepository,
-    pub code_repo: CodeRepository,
+    pub staff_repo: StaffRepository,
     pub entry_log_repo: EntryLogRepository,
 }
 
@@ -37,9 +37,9 @@ impl FromRef<AppState> for CustomerRepository {
     }
 }
 
-impl FromRef<AppState> for CodeRepository {
+impl FromRef<AppState> for StaffRepository {
     fn from_ref(input: &AppState) -> Self {
-        input.code_repo.clone()
+        input.staff_repo.clone()
     }
 }
 
@@ -80,12 +80,12 @@ where
 
 pub async fn serve(pool: PgPool) -> anyhow::Result<()> {
     let customer_repo = CustomerRepository { pool: pool.clone() };
-    let code_repo = CodeRepository { pool: pool.clone() };
+    let staff_repo = StaffRepository { pool: pool.clone() };
     let entry_log_repo = EntryLogRepository { pool: pool.clone() };
     let app_state = AppState {
         pool,
         customer_repo,
-        code_repo,
+        staff_repo,
         entry_log_repo,
     };
 
@@ -99,14 +99,15 @@ pub async fn serve(pool: PgPool) -> anyhow::Result<()> {
             "/customers/:id",
             get(customer_handler::get).put(customer_handler::update),
         )
-        .route("/customers/:id/codes", get(code_handler::list))
-        .route("/codes", post(code_handler::create))
+        .route("/customers/:id/staff", get(staff_handler::list))
+        .route("/staff", post(staff_handler::create))
         .route(
-            "/codes/:code",
-            get(code_handler::get)
-                .delete(code_handler::delete)
-                .put(code_handler::update),
+            "/staff/:id",
+            get(staff_handler::get)
+                .delete(staff_handler::delete)
+                .put(staff_handler::update),
         )
+        .route("/staff/:id/pin", post(staff_handler::update_pin))
         .route("/entry_logs", get(entry_handler::list))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
