@@ -2,7 +2,7 @@
 
 create table entry_log (
   id bigserial primary key,
-  staff_id bigint not null references staff,
+  staff_id bigint references staff,
   code varchar not null,
   created timestamptz not null default current_timestamp
 );

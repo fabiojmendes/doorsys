@@ -6,6 +6,6 @@ create table staff (
   name varchar not null,
   phone varchar not null,
   pin varchar not null unique,
-  fob varchar,
+  fob varchar unique,
   created timestamptz not null default current_timestamp
 );

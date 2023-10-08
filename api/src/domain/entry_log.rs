@@ -6,7 +6,7 @@ use sqlx::PgPool;
 #[serde(rename_all = "camelCase")]
 pub struct EntryLog {
     pub id: i64,
-    pub staff_id: i64,
+    pub staff_id: Option<i64>,
     pub code: String,
     pub created: DateTime<Utc>,
 }

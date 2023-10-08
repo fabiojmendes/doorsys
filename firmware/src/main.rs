@@ -6,7 +6,7 @@ mod mqtt;
 mod network;
 mod wiegand;
 
-use doorsys_protocol::Audit;
+use doorsys_protocol::{Audit, CodeType};
 use embedded_svc::mqtt::client::QoS;
 use esp_idf_hal as _;
 use esp_idf_hal::gpio::OutputPin;
@@ -89,6 +89,7 @@ fn setup_reader(
                         log::info!("contains pin: {:?}", contains);
                         let mut audit = Audit {
                             code: pin.clone(),
+                            code_type: CodeType::Pin,
                             timestamp: SystemTime::now(),
                             success: false,
                         };
@@ -115,6 +116,7 @@ fn setup_reader(
                     log::info!("RFID: {}", rfid);
                     let mut audit = Audit {
                         code: rfid.to_string(),
+                        code_type: CodeType::Fob,
                         timestamp: SystemTime::now(),
                         success: false,
                     };
