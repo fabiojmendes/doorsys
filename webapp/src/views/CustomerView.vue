@@ -1,11 +1,12 @@
 <script setup>
 import { computed, inject, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import StaffList from '@/components/StaffList.vue'
 import BackButton from '@/components/BackButton.vue'
 
 const api = inject('api')
 const route = useRoute()
+const router = useRouter()
 
 const customer = ref({})
 const editing = ref(false)
@@ -40,6 +41,7 @@ async function save() {
   } else {
     const res = await api.post('/customers', customer.value)
     customer.value = res.data
+    router.replace(`/customers/${customer.value.id}`)
   }
   editing.value = false
 }
