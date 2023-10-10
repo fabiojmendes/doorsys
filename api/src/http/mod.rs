@@ -9,6 +9,7 @@ use axum::{
     routing::{get, post},
     Json, Router, Server,
 };
+use rumqttc::AsyncClient;
 use serde_json::json;
 use sqlx::PgPool;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -23,6 +24,7 @@ pub struct AppState {
     pub customer_repo: CustomerRepository,
     pub staff_repo: StaffRepository,
     pub entry_log_repo: EntryLogRepository,
+    pub mqtt_client: AsyncClient,
 }
 
 impl FromRef<AppState> for PgPool {
@@ -46,6 +48,12 @@ impl FromRef<AppState> for StaffRepository {
 impl FromRef<AppState> for EntryLogRepository {
     fn from_ref(input: &AppState) -> Self {
         input.entry_log_repo.clone()
+    }
+}
+
+impl FromRef<AppState> for AsyncClient {
+    fn from_ref(input: &AppState) -> Self {
+        input.mqtt_client.clone()
     }
 }
 
@@ -78,7 +86,7 @@ where
     }
 }
 
-pub async fn serve(pool: PgPool) -> anyhow::Result<()> {
+pub async fn serve(pool: PgPool, mqtt_client: AsyncClient) -> anyhow::Result<()> {
     let customer_repo = CustomerRepository { pool: pool.clone() };
     let staff_repo = StaffRepository { pool: pool.clone() };
     let entry_log_repo = EntryLogRepository { pool: pool.clone() };
@@ -87,6 +95,7 @@ pub async fn serve(pool: PgPool) -> anyhow::Result<()> {
         customer_repo,
         staff_repo,
         entry_log_repo,
+        mqtt_client,
     };
 
     let app = Router::new()

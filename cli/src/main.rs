@@ -1,8 +1,11 @@
-use std::{thread, time::Duration};
+use std::{
+    thread,
+    time::{Duration, SystemTime},
+};
 
 use bincode::config::Configuration;
 use chrono::{DateTime, Utc};
-use doorsys_protocol::{Audit, UserAction};
+use doorsys_protocol::{Audit, CodeType, UserAction};
 use rumqttc::{Client, Event, MqttOptions, Packet, QoS};
 
 const CONFIG: Configuration = bincode::config::standard();
@@ -17,7 +20,6 @@ fn main() {
         .set_clean_session(false);
 
     let (mut client, mut connection) = Client::new(mqtt_opts, 10);
-    client.subscribe("doorsys/audit", QoS::AtLeastOnce).unwrap();
 
     thread::spawn(move || {
         client
@@ -27,7 +29,19 @@ fn main() {
         let user_add = UserAction::Del(String::from("1234"));
         if let Ok(payload) = bincode::encode_to_vec(user_add, CONFIG) {
             client
-                .publish("doorsys/user", QoS::AtMostOnce, false, &*payload)
+                .publish("doorsys/user", QoS::AtMostOnce, false, payload)
+                .unwrap();
+        }
+
+        let audit = Audit {
+            timestamp: SystemTime::now(),
+            code: "12983".to_owned(),
+            code_type: CodeType::Pin,
+            success: false,
+        };
+        if let Ok(payload) = bincode::encode_to_vec(audit, CONFIG) {
+            client
+                .publish("doorsys/audit", QoS::AtLeastOnce, false, payload)
                 .unwrap();
         }
     });

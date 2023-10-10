@@ -14,7 +14,7 @@ onMounted(async () => {
   entries.value = res.data.map((item) => {
     return {
       ...item,
-      created: new Date(item.created),
+      eventDate: new Date(item.eventDate),
       codeTypeLabel: LABELS[item.codeType]
     }
   })
@@ -25,26 +25,31 @@ onMounted(async () => {
   <table class="table table-striped">
     <thead>
       <tr>
-        <th>Name</th>
+        <th>Customer</th>
+        <th>Staff</th>
         <th>Date</th>
-        <th>Attributes</th>
+        <th class="text-center">Attributes</th>
       </tr>
     </thead>
     <tbody>
       <tr v-for="e in entries">
-        <td>{{ e.name }}</td>
-        <td>{{ e.created.toLocaleString() }}</td>
         <td>
-          <i
-            v-if="e.success"
-            :class="`bi bi-${e.codeTypeLabel}`"
-            :title="`Entry using ${e.codeType}`"
-          ></i>
-          <i v-else class="text-danger bi bi-exclamation-octagon"></i>
+          <RouterLink v-if="e.customerId" :to="`/customers/${e.customerId}`">
+            {{ e.customerName }}
+          </RouterLink>
+          <span v-else>None</span>
+        </td>
+        <td>
+          <RouterLink v-if="e.staffId" :to="`/staff/${e.staffId}`">{{ e.staffName }}</RouterLink>
+          <span v-else>{{ e.code }}</span>
+        </td>
+        <td>{{ e.eventDate.toLocaleString() }}</td>
+        <td class="text-center">
+          <i :class="`bi bi-${e.codeTypeLabel}`" :title="`Entry using ${e.codeType}`"></i>
+          <i v-if="!e.success" class="ms-1 text-success bi bi-check-square"></i>
+          <i v-else title="Invalid attempt" class="ms-1 text-danger bi bi-exclamation-octagon"></i>
         </td>
       </tr>
     </tbody>
   </table>
 </template>
-
-<style scoped></style>

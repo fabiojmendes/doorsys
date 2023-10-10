@@ -8,7 +8,24 @@ pub struct EntryLog {
     pub id: i64,
     pub staff_id: Option<i64>,
     pub code: String,
+    pub code_type: String,
+    pub success: bool,
+    pub event_date: DateTime<Utc>,
     pub created: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EntryLogDisplay {
+    pub id: i64,
+    pub staff_id: Option<i64>,
+    pub staff_name: Option<String>,
+    pub customer_id: Option<i64>,
+    pub customer_name: Option<String>,
+    pub code: String,
+    pub code_type: String,
+    pub success: bool,
+    pub event_date: DateTime<Utc>,
 }
 
 #[derive(Clone)]
@@ -17,41 +34,51 @@ pub struct EntryLogRepository {
 }
 
 impl EntryLogRepository {
-    pub async fn create(&self, staff_id: i64, code: &str) -> Result<EntryLog, sqlx::Error> {
+    pub async fn create_with_code(
+        &self,
+        code: &str,
+        code_type: &str,
+        success: bool,
+        event_date: &DateTime<Utc>,
+    ) -> Result<EntryLog, sqlx::Error> {
         sqlx::query_as!(
             EntryLog,
-            "insert into entry_log (staff_id, code) values ($1, $2) returning *",
-            staff_id,
-            code
+            r#"
+                with temp(code) as (values($1))
+                insert into entry_log (staff_id, code, code_type, success, event_date) 
+                    select s.id, t.code, $2, $3, $4
+                    from temp t
+                    left join staff s on s.pin = t.code or s.fob = t.code
+                returning *
+            "#,
+            code,
+            code_type,
+            success,
+            event_date
         )
         .fetch_one(&self.pool)
         .await
     }
 
-    pub async fn fetch_all(&self) -> Result<Vec<EntryLog>, sqlx::Error> {
-        sqlx::query_as!(EntryLog, "select * from entry_log order by created desc",)
-            .fetch_all(&self.pool)
-            .await
-    }
-
-    pub async fn fetch_all_by_staff(&self, staff_id: i64) -> Result<Vec<EntryLog>, sqlx::Error> {
+    pub async fn fetch_all(&self) -> Result<Vec<EntryLogDisplay>, sqlx::Error> {
         sqlx::query_as!(
-            EntryLog,
-            "select * from entry_log where staff_id = $1",
-            staff_id
-        )
-        .fetch_all(&self.pool)
-        .await
-    }
-
-    pub async fn fetch_all_by_customer(
-        &self,
-        customer_id: i64,
-    ) -> Result<Vec<EntryLog>, sqlx::Error> {
-        sqlx::query_as!(
-            EntryLog,
-            "select e.* from entry_log e join staff s on e.staff_id = s.id where s.customer_id = $1",
-            customer_id
+            EntryLogDisplay,
+            r#"
+                select 
+                    e.id, 
+                    s.id as "staff_id?", 
+                    s.name as "staff_name?", 
+                    c.id as "customer_id?",
+                    c.name as "customer_name?",
+                    e.code,
+                    e.code_type,
+                    e.success,
+                    e.event_date
+                from entry_log e
+                left join staff s on s.id = e.staff_id
+                left join customer c on s.customer_id = c.id
+                order by e.event_date desc
+            "#,
         )
         .fetch_all(&self.pool)
         .await

@@ -8,6 +8,15 @@ pub enum CodeType {
     Fob,
 }
 
+impl ToString for CodeType {
+    fn to_string(&self) -> String {
+        match self {
+            CodeType::Pin => String::from("pin"),
+            CodeType::Fob => String::from("fob"),
+        }
+    }
+}
+
 #[derive(Debug, Encode, Decode)]
 pub struct Audit {
     pub timestamp: SystemTime,

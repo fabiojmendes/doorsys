@@ -2,6 +2,7 @@ use std::env;
 
 mod domain;
 mod http;
+mod mqtt;
 
 use sqlx::postgres::PgPoolOptions;
 
@@ -18,5 +19,7 @@ async fn main() -> anyhow::Result<()> {
 
     sqlx::migrate!().run(&pool).await?;
 
-    http::serve(pool).await
+    let mqtt_client = mqtt::start(pool.clone()).await?;
+
+    http::serve(pool, mqtt_client).await
 }
