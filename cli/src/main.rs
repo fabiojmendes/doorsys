@@ -20,6 +20,7 @@ fn main() {
         .set_clean_session(false);
 
     let (mut client, mut connection) = Client::new(mqtt_opts, 10);
+    client.subscribe("doorsys/user", QoS::AtLeastOnce).unwrap();
 
     thread::spawn(move || {
         client
