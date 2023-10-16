@@ -44,12 +44,12 @@ impl EntryLogRepository {
         sqlx::query_as!(
             EntryLog,
             r#"
-                with temp(code) as (values($1))
-                insert into entry_log (staff_id, code, code_type, success, event_date) 
-                    select s.id, t.code, $2, $3, $4
-                    from temp t
-                    left join staff s on s.pin = t.code or s.fob = t.code
-                returning *
+            with temp(code) as (values($1))
+            insert into entry_log (staff_id, code, code_type, success, event_date) 
+                select s.id, t.code, $2, $3, $4
+                from temp t
+                left join staff s on s.pin = t.code or s.fob = t.code
+            returning *
             "#,
             code,
             code_type,
@@ -64,20 +64,20 @@ impl EntryLogRepository {
         sqlx::query_as!(
             EntryLogDisplay,
             r#"
-                select 
-                    e.id, 
-                    s.id as "staff_id?", 
-                    s.name as "staff_name?", 
-                    c.id as "customer_id?",
-                    c.name as "customer_name?",
-                    e.code,
-                    e.code_type,
-                    e.success,
-                    e.event_date
-                from entry_log e
-                left join staff s on s.id = e.staff_id
-                left join customer c on s.customer_id = c.id
-                order by e.event_date desc
+            select 
+                e.id, 
+                s.id as "staff_id?", 
+                s.name as "staff_name?", 
+                c.id as "customer_id?",
+                c.name as "customer_name?",
+                e.code,
+                e.code_type,
+                e.success,
+                e.event_date
+            from entry_log e
+            left join staff s on s.id = e.staff_id
+            left join customer c on s.customer_id = c.id
+            order by e.event_date desc
             "#,
         )
         .fetch_all(&self.pool)
