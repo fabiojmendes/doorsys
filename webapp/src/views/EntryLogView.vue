@@ -46,7 +46,7 @@ onMounted(async () => {
         <td>{{ e.eventDate.toLocaleString() }}</td>
         <td class="text-center">
           <i :class="`bi bi-${e.codeTypeLabel}`" :title="`Entry using ${e.codeType}`"></i>
-          <i v-if="!e.success" class="ms-1 text-success bi bi-check-square"></i>
+          <i v-if="e.success" title="Successful entry" class="ms-1 bi bi-check-square"></i>
           <i v-else title="Invalid attempt" class="ms-1 text-danger bi bi-exclamation-octagon"></i>
         </td>
       </tr>
