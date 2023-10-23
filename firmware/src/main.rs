@@ -7,19 +7,18 @@ mod network;
 mod wiegand;
 
 use doorsys_protocol::{Audit, CodeType};
-use embedded_svc::mqtt::client::QoS;
-use esp_idf_hal as _;
-use esp_idf_hal::gpio::OutputPin;
-use esp_idf_hal::prelude::Peripherals;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
+use esp_idf_svc::hal::gpio::OutputPin;
+use esp_idf_svc::hal::prelude::Peripherals;
 use esp_idf_svc::mqtt::client::EspMqttClient;
+use esp_idf_svc::mqtt::client::QoS;
 use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs, NvsDefault};
-use esp_idf_svc::systime::EspSystemTime;
-use esp_idf_sys::{
+use esp_idf_svc::sys::{
     esp, gpio_install_isr_service, heap_caps_get_free_size, heap_caps_get_largest_free_block,
     heap_caps_get_minimum_free_size, heap_caps_get_total_size, ESP_INTR_FLAG_IRAM,
     MALLOC_CAP_DEFAULT,
 };
+use esp_idf_svc::systime::EspSystemTime;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
@@ -152,7 +151,10 @@ fn setup_reader(
     Ok(())
 }
 
-fn setup_audit_publiher(mqtt_client: Arc<Mutex<EspMqttClient>>, audit_rx: Receiver<Audit>) {
+fn setup_audit_publiher(
+    mqtt_client: Arc<Mutex<EspMqttClient<'static>>>,
+    audit_rx: Receiver<Audit>,
+) {
     thread::spawn(move || {
         let config = bincode::config::standard();
 
@@ -176,8 +178,10 @@ fn setup_audit_publiher(mqtt_client: Arc<Mutex<EspMqttClient>>, audit_rx: Receiv
     });
 }
 
-fn health_check(mqtt_client: Arc<Mutex<EspMqttClient>>) -> anyhow::Result<()> {
+fn health_check(mqtt_client: Arc<Mutex<EspMqttClient<'static>>>) -> anyhow::Result<()> {
     let systime = EspSystemTime {};
+
+    let mqtt_client = mqtt_client.clone();
 
     thread::spawn(move || loop {
         let time = systime.now().as_nanos();
@@ -207,7 +211,7 @@ fn health_check(mqtt_client: Arc<Mutex<EspMqttClient>>) -> anyhow::Result<()> {
 fn main() -> anyhow::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
     // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
-    esp_idf_sys::link_patches();
+    esp_idf_svc::sys::link_patches();
     // Bind the log crate to the ESP Logging facilities
     esp_idf_svc::log::EspLogger::initialize_default();
 

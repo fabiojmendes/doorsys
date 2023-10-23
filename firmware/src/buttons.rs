@@ -1,6 +1,6 @@
 use std::{ffi::c_void, ptr};
 
-use esp_idf_sys::{
+use esp_idf_svc::sys::{
     esp, gpio_config, gpio_config_t, gpio_int_type_t_GPIO_INTR_NEGEDGE, gpio_isr_handler_add,
     gpio_mode_t_GPIO_MODE_INPUT, vQueueDelete, xQueueGenericCreate, xQueueGiveFromISR,
     xQueueReceive, QueueDefinition,

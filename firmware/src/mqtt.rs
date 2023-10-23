@@ -1,5 +1,5 @@
 use doorsys_protocol::UserAction;
-use embedded_svc::mqtt::client::{Details, Event, QoS};
+use esp_idf_svc::mqtt::client::{Details, Event, QoS};
 use esp_idf_svc::mqtt::client::{EspMqttClient, EspMqttMessage, MqttClientConfiguration};
 use esp_idf_svc::nvs::{EspNvs, NvsDefault};
 use std::sync::mpsc::Sender;
@@ -14,7 +14,7 @@ const BINCODE_CONFIG: bincode::config::Configuration = bincode::config::standard
 pub fn setup_mqtt(
     nvs: Arc<Mutex<EspNvs<NvsDefault>>>,
     door_tx: Sender<()>,
-) -> anyhow::Result<EspMqttClient> {
+) -> anyhow::Result<EspMqttClient<'static>> {
     let mqtt_config = MqttClientConfiguration {
         client_id: Some("doorsys"),
         username: Some(MQTT_USER),
