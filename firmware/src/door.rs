@@ -1,4 +1,4 @@
-use esp_idf_hal::gpio::{Output, OutputPin, PinDriver};
+use esp_idf_svc::hal::gpio::{Output, OutputPin, PinDriver};
 
 pub struct Door<'d, T: OutputPin> {
     driver: PinDriver<'d, T, Output>,
@@ -6,7 +6,7 @@ pub struct Door<'d, T: OutputPin> {
 
 impl<T: OutputPin> Door<'_, T> {
     pub fn new(pin: T) -> anyhow::Result<Self> {
-        let mut driver = PinDriver::output_od(pin)?;
+        let mut driver = PinDriver::output(pin)?;
         driver.set_high()?;
 
         Ok(Door { driver })

@@ -1,8 +1,8 @@
-use embedded_svc::wifi::{AuthMethod, ClientConfiguration, Configuration};
-use esp_idf_hal::modem::Modem;
 use esp_idf_svc::eventloop::{EspEventLoop, System};
+use esp_idf_svc::hal::modem::Modem;
 use esp_idf_svc::nvs::{EspNvsPartition, NvsDefault};
 use esp_idf_svc::sntp::EspSntp;
+use esp_idf_svc::wifi::{AuthMethod, ClientConfiguration, Configuration};
 use esp_idf_svc::wifi::{BlockingWifi, EspWifi};
 use std::{thread, time::Duration};
 

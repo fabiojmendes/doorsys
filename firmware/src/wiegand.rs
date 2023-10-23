@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use esp_idf_sys::{
+use esp_idf_svc::sys::{
     esp, esp_timer_create, esp_timer_create_args_t, esp_timer_delete,
     esp_timer_dispatch_t_ESP_TIMER_TASK, esp_timer_handle_t, esp_timer_start_once, esp_timer_stop,
     gpio_config, gpio_config_t, gpio_get_level, gpio_int_type_t_GPIO_INTR_DISABLE,
