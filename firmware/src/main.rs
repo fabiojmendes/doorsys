@@ -30,10 +30,11 @@ use crate::wiegand::Reader;
 
 const MAX_PIN_LENGTH: usize = 8;
 const HASH_KEY: u8 = 0x0B;
-const GPIO_D0: i32 = 7;
-const GPIO_D1: i32 = 8;
+const DOOR_OPEN_DELAY: Duration = Duration::from_secs(6);
 
-const GPIO_BUTTON: i32 = 9;
+const GPIO_D0: i32 = 4;
+const GPIO_D1: i32 = 5;
+const GPIO_BUTTON: i32 = 0;
 
 fn setup_button(door_tx: Sender<()>) {
     thread::spawn(move || {
@@ -57,7 +58,7 @@ fn setup_door(pin: impl OutputPin, door_rx: Receiver<()>) -> anyhow::Result<()> 
             log::error!("error: {}", e);
         }
         // Drain the queue while the door is open
-        while door_rx.recv_timeout(Duration::from_secs(2)).is_ok() {}
+        while door_rx.recv_timeout(DOOR_OPEN_DELAY).is_ok() {}
         if let Err(e) = door.close() {
             log::error!("error: {}", e);
         }
@@ -227,7 +228,7 @@ fn main() -> anyhow::Result<()> {
     log::info!("Starting application");
 
     let (door_tx, door_rx) = mpsc::channel();
-    setup_door(peripherals.pins.gpio10, door_rx)?;
+    setup_door(peripherals.pins.gpio16, door_rx)?;
 
     setup_button(door_tx.clone());
 

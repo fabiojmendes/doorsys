@@ -6,19 +6,17 @@ pub struct Door<'d, T: OutputPin> {
 
 impl<T: OutputPin> Door<'_, T> {
     pub fn new(pin: T) -> anyhow::Result<Self> {
-        let mut driver = PinDriver::output(pin)?;
-        driver.set_high()?;
-
+        let driver = PinDriver::output(pin)?;
         Ok(Door { driver })
     }
 
     pub fn open(&mut self) -> anyhow::Result<()> {
-        self.driver.set_low()?;
+        self.driver.set_high()?;
         Ok(())
     }
 
     pub fn close(&mut self) -> anyhow::Result<()> {
-        self.driver.set_high()?;
+        self.driver.set_low()?;
         Ok(())
     }
 }

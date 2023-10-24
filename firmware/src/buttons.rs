@@ -6,7 +6,7 @@ use esp_idf_svc::sys::{
     xQueueReceive, QueueDefinition,
 };
 
-#[link_section = ".iram0.text"]
+#[link_section = ".iram1.text"]
 unsafe extern "C" fn button_interrupt(arg: *mut c_void) {
     let queue = arg as *mut QueueDefinition;
     xQueueGiveFromISR(queue, ptr::null_mut());
@@ -19,7 +19,6 @@ pub struct Button {
 
 impl Button {
     pub fn new(gpio: i32) -> anyhow::Result<Button> {
-        // Configures the button
         let queue = unsafe { xQueueGenericCreate(1, 0, 0) };
         let button = Button { gpio, queue };
         let io_conf = gpio_config_t {
