@@ -27,7 +27,7 @@ pub async fn create(
     let user_add = UserAction::Add(pin);
     if let Ok(payload) = bincode::encode_to_vec(user_add, mqtt::BINCODE_CONFIG) {
         mqtt_client
-            .publish("doorsys/user", QoS::AtMostOnce, false, payload)
+            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
             .await?;
     }
 
@@ -35,7 +35,7 @@ pub async fn create(
         let user_add = UserAction::Add(fob.to_owned());
         if let Ok(payload) = bincode::encode_to_vec(user_add, mqtt::BINCODE_CONFIG) {
             mqtt_client
-                .publish("doorsys/user", QoS::AtMostOnce, false, payload)
+                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
                 .await?;
         }
     }
@@ -80,13 +80,13 @@ pub async fn update_pin(
     let user_add = UserAction::Add(new_pin);
     if let Ok(payload) = bincode::encode_to_vec(user_add, mqtt::BINCODE_CONFIG) {
         mqtt_client
-            .publish("doorsys/user", QoS::AtMostOnce, false, payload)
+            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
             .await?;
     }
     let user_del = UserAction::Del(old_pin);
     if let Ok(payload) = bincode::encode_to_vec(user_del, mqtt::BINCODE_CONFIG) {
         mqtt_client
-            .publish("doorsys/user", QoS::AtMostOnce, false, payload)
+            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
             .await?;
     }
     Ok(Json(staff))
