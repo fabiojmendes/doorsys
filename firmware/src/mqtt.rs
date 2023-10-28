@@ -1,9 +1,9 @@
 use doorsys_protocol::UserAction;
 use esp_idf_svc::mqtt::client::{Details, Event, QoS};
 use esp_idf_svc::mqtt::client::{EspMqttClient, EspMqttMessage, MqttClientConfiguration};
-use esp_idf_svc::nvs::{EspNvs, NvsDefault};
 use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex};
+
+use crate::user::UserDB;
 
 const MQTT_URL: &str = env!("MQTT_URL");
 const MQTT_USER: &str = env!("MQTT_USER");
@@ -11,10 +11,7 @@ const MQTT_PASS: &str = env!("MQTT_PASS");
 
 const BINCODE_CONFIG: bincode::config::Configuration = bincode::config::standard();
 
-pub fn setup_mqtt(
-    nvs: Arc<Mutex<EspNvs<NvsDefault>>>,
-    door_tx: Sender<()>,
-) -> anyhow::Result<EspMqttClient<'static>> {
+pub fn setup_mqtt(user_db: UserDB, door_tx: Sender<()>) -> anyhow::Result<EspMqttClient<'static>> {
     let mqtt_config = MqttClientConfiguration {
         client_id: Some("doorsys"),
         username: Some(MQTT_USER),
@@ -24,7 +21,7 @@ pub fn setup_mqtt(
     };
 
     let mut client = EspMqttClient::new(MQTT_URL, &mqtt_config, move |res| match res {
-        Ok(Event::Received(msg)) => route_message(msg, &nvs, &door_tx),
+        Ok(Event::Received(msg)) => route_message(msg, user_db.clone(), &door_tx),
         Ok(event) => log::info!("mqtt event: {:?}", event),
         Err(e) => log::warn!("from mqtt: {:?} {:?}", res, e),
     })?;
@@ -35,9 +32,9 @@ pub fn setup_mqtt(
     Ok(client)
 }
 
-fn route_message(msg: &EspMqttMessage, nvs: &Mutex<EspNvs<NvsDefault>>, door_tx: &Sender<()>) {
+fn route_message(msg: &EspMqttMessage, user_db: UserDB, door_tx: &Sender<()>) {
     match msg.topic() {
-        Some("doorsys/user") => process_user_message(msg, nvs),
+        Some("doorsys/user") => process_user_message(msg, user_db),
         Some("doorsys/open") => proccess_open_message(msg, door_tx),
         Some(topic) => log::warn!("unknown topic {}", topic),
         None => log::error!("no topic provided"),
@@ -51,7 +48,7 @@ fn proccess_open_message(msg: &EspMqttMessage, door_tx: &Sender<()>) {
     }
 }
 
-fn process_user_message(msg: &EspMqttMessage, nvs: &Mutex<EspNvs<NvsDefault>>) {
+fn process_user_message(msg: &EspMqttMessage, user_db: UserDB) {
     if msg.details() != &Details::Complete {
         log::error!("incomplete message, dropping {:?}", msg);
         return;
@@ -60,16 +57,10 @@ fn process_user_message(msg: &EspMqttMessage, nvs: &Mutex<EspNvs<NvsDefault>>) {
     log::info!("msg: {:?}, data: {:?}", msg, msg.data());
     match bincode::decode_from_slice(msg.data(), BINCODE_CONFIG) {
         Ok((UserAction::Add(code), _)) => {
-            let key = code.to_string();
-            if let Err(e) = nvs.lock().unwrap().set_u8(&key, 1) {
-                log::error!("nvs error: {}", e);
-            }
+            user_db.add(&code);
         }
         Ok((UserAction::Del(code), _)) => {
-            let key = code.to_string();
-            if let Err(e) = nvs.lock().unwrap().remove(&key) {
-                log::error!("nvs error: {}", e);
-            }
+            user_db.delete(&code);
         }
         Err(e) => {
             log::error!("decoding error: {}", e);

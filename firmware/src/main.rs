@@ -4,6 +4,7 @@ mod buttons;
 mod door;
 mod mqtt;
 mod network;
+mod user;
 mod wiegand;
 
 use doorsys_protocol::{Audit, CodeType};
@@ -12,7 +13,7 @@ use esp_idf_svc::hal::gpio::OutputPin;
 use esp_idf_svc::hal::prelude::Peripherals;
 use esp_idf_svc::mqtt::client::EspMqttClient;
 use esp_idf_svc::mqtt::client::QoS;
-use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs, NvsDefault};
+use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs};
 use esp_idf_svc::sys::{
     esp, gpio_install_isr_service, heap_caps_get_free_size, heap_caps_get_largest_free_block,
     heap_caps_get_minimum_free_size, heap_caps_get_total_size, ESP_INTR_FLAG_IRAM,
@@ -26,6 +27,7 @@ use std::{thread, time::Duration};
 use wiegand::Packet;
 
 use crate::buttons::Button;
+use crate::user::UserDB;
 use crate::wiegand::Reader;
 
 const MAX_PIN_LENGTH: usize = 8;
@@ -69,7 +71,7 @@ fn setup_door(pin: impl OutputPin, door_rx: Receiver<()>) -> anyhow::Result<()> 
 
 fn setup_reader(
     door_tx: Sender<()>,
-    nvs: Arc<Mutex<EspNvs<NvsDefault>>>,
+    user_db: UserDB,
     audit_tx: Sender<Audit>,
 ) -> anyhow::Result<()> {
     thread::spawn(move || {
@@ -85,21 +87,16 @@ fn setup_reader(
                     if key == HASH_KEY {
                         log::info!("open door {:?}", keys);
                         let pin: String = keys.iter().cloned().map(|i: u8| i.to_string()).collect();
-                        let contains = { nvs.lock().unwrap().get_u8(&pin) };
+                        let contains = user_db.contains(&pin);
                         log::info!("contains pin: {:?}", contains);
-                        let mut audit = Audit {
+                        let audit = Audit {
                             code: pin.clone(),
                             code_type: CodeType::Pin,
                             timestamp: SystemTime::now(),
-                            success: false,
+                            success: contains,
                         };
-                        match contains {
-                            Ok(Some(_)) => {
-                                door_tx.send(()).unwrap();
-                                audit.success = true;
-                            }
-                            Ok(None) => log::warn!("invalid pin: {}", &pin),
-                            Err(e) => log::error!("error reading nvs {}", e),
+                        if contains {
+                            door_tx.send(()).unwrap();
                         }
                         if let Err(e) = audit_tx.send(audit) {
                             log::error!("error sending audit record: {}", e);
@@ -114,22 +111,16 @@ fn setup_reader(
                 }
                 Ok(Packet::Card { rfid }) => {
                     log::info!("RFID: {}", rfid);
-                    let mut audit = Audit {
+                    let rfid_str = rfid.to_string();
+                    let contains = user_db.contains(&rfid_str);
+                    let audit = Audit {
                         code: rfid.to_string(),
                         code_type: CodeType::Fob,
                         timestamp: SystemTime::now(),
-                        success: false,
+                        success: contains,
                     };
-
-                    let rfid_str = rfid.to_string();
-                    let contains = { nvs.lock().unwrap().get_u8(&rfid_str) };
-                    match contains {
-                        Ok(Some(_)) => {
-                            door_tx.send(()).unwrap();
-                            audit.success = true;
-                        }
-                        Ok(None) => log::warn!("invalid card id: {}", &rfid_str),
-                        Err(e) => log::error!("error reading nvs {}", e),
+                    if contains {
+                        door_tx.send(()).unwrap();
                     }
                     if let Err(e) = audit_tx.send(audit) {
                         log::error!("error sending audit record: {}", e);
@@ -223,7 +214,9 @@ fn main() -> anyhow::Result<()> {
     let sysloop = EspSystemEventLoop::take()?;
     let nvs_part = EspDefaultNvsPartition::take()?;
 
-    let doorsys_nvs = Arc::new(Mutex::new(EspNvs::new(nvs_part.clone(), "doorsys", true)?));
+    let doorsys_nvs = EspNvs::new(nvs_part.clone(), "doorsys", true)?;
+
+    let user_db = UserDB::new(doorsys_nvs);
 
     log::info!("Starting application");
 
@@ -233,12 +226,12 @@ fn main() -> anyhow::Result<()> {
     setup_button(door_tx.clone());
 
     let (audit_tx, audit_rx) = mpsc::channel();
-    setup_reader(door_tx.clone(), doorsys_nvs.clone(), audit_tx)?;
+    setup_reader(door_tx.clone(), user_db.clone(), audit_tx)?;
 
     network::setup_wireless(peripherals.modem, sysloop.clone(), nvs_part.clone())?;
 
     let mqtt_client = Arc::new(Mutex::new(mqtt::setup_mqtt(
-        doorsys_nvs.clone(),
+        user_db.clone(),
         door_tx.clone(),
     )?));
 
