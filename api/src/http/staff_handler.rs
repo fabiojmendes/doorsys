@@ -11,9 +11,9 @@ use doorsys_protocol::UserAction;
 use rand::Rng;
 use rumqttc::{AsyncClient, QoS};
 
-fn generate_pin() -> String {
+fn generate_pin() -> i32 {
     let mut rng = rand::thread_rng();
-    (0..6).map(|_| rng.gen_range(0..10).to_string()).collect()
+    rng.gen_range(0..999999)
 }
 
 pub async fn create(
@@ -22,7 +22,7 @@ pub async fn create(
     Json(new_staff): Json<NewStaff>,
 ) -> HttpResult<Json<Staff>> {
     let pin = generate_pin();
-    let staff = staff_repo.create(&new_staff, &pin).await?;
+    let staff = staff_repo.create(&new_staff, pin).await?;
 
     let user_add = UserAction::Add(pin);
     if let Ok(payload) = bincode::encode_to_vec(user_add, mqtt::BINCODE_CONFIG) {
@@ -31,8 +31,8 @@ pub async fn create(
             .await?;
     }
 
-    if let Some(fob) = &staff.fob {
-        let user_add = UserAction::Add(fob.to_owned());
+    if let Some(fob) = staff.fob {
+        let user_add = UserAction::Add(fob);
         if let Ok(payload) = bincode::encode_to_vec(user_add, mqtt::BINCODE_CONFIG) {
             mqtt_client
                 .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
@@ -73,18 +73,12 @@ pub async fn update_pin(
     Path(id): Path<i64>,
 ) -> HttpResult<Json<Staff>> {
     let old_staff = staff_repo.fetch_one(id).await?;
-    let old_pin = old_staff.pin;
-    let new_pin = generate_pin();
-    let staff = staff_repo.update_pin(id, &new_pin).await?;
+    let old = old_staff.pin;
+    let new = generate_pin();
+    let staff = staff_repo.update_pin(id, new).await?;
 
-    let user_add = UserAction::Add(new_pin);
-    if let Ok(payload) = bincode::encode_to_vec(user_add, mqtt::BINCODE_CONFIG) {
-        mqtt_client
-            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-            .await?;
-    }
-    let user_del = UserAction::Del(old_pin);
-    if let Ok(payload) = bincode::encode_to_vec(user_del, mqtt::BINCODE_CONFIG) {
+    let replace_pin = UserAction::Replace { old, new };
+    if let Ok(payload) = bincode::encode_to_vec(replace_pin, mqtt::BINCODE_CONFIG) {
         mqtt_client
             .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
             .await?;

@@ -7,7 +7,7 @@ use sqlx::PgPool;
 pub struct EntryLog {
     pub id: i64,
     pub staff_id: Option<i64>,
-    pub code: String,
+    pub code: i32,
     pub code_type: String,
     pub success: bool,
     pub event_date: DateTime<Utc>,
@@ -22,7 +22,7 @@ pub struct EntryLogDisplay {
     pub staff_name: Option<String>,
     pub customer_id: Option<i64>,
     pub customer_name: Option<String>,
-    pub code: String,
+    pub code: i32,
     pub code_type: String,
     pub success: bool,
     pub event_date: DateTime<Utc>,
@@ -36,7 +36,7 @@ pub struct EntryLogRepository {
 impl EntryLogRepository {
     pub async fn create_with_code(
         &self,
-        code: &str,
+        code: i32,
         code_type: &str,
         success: bool,
         event_date: &DateTime<Utc>,
@@ -44,7 +44,7 @@ impl EntryLogRepository {
         sqlx::query_as!(
             EntryLog,
             r#"
-            with temp(code) as (values($1))
+            with temp(code) as (values($1::int))
             insert into entry_log (staff_id, code, code_type, success, event_date) 
                 select s.id, t.code, $2, $3, $4
                 from temp t

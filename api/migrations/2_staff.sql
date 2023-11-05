@@ -5,7 +5,7 @@ create table staff (
   customer_id bigint not null references customer,
   name varchar not null,
   phone varchar not null,
-  pin varchar not null unique,
-  fob varchar unique,
+  pin int not null unique,
+  fob int unique,
   created timestamptz not null default current_timestamp
 );

@@ -48,13 +48,7 @@ async function resetPin() {
         </div>
         <div class="mb-3">
           <label for="fob" class="form-label">Fob</label>
-          <input
-            type="text"
-            v-model="staff.fob"
-            class="form-control"
-            placeholder="(Optional)"
-            pattern="\d{8}"
-          />
+          <input type="number" v-model="staff.fob" class="form-control" placeholder="(Optional)" />
         </div>
         <div>
           <label for="pin" class="form-label">Pin</label>

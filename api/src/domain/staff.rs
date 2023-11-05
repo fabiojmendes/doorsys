@@ -9,8 +9,8 @@ pub struct Staff {
     pub customer_id: i64,
     pub name: String,
     pub phone: String,
-    pub pin: String,
-    pub fob: Option<String>,
+    pub pin: i32,
+    pub fob: Option<i32>,
     pub created: DateTime<Utc>,
 }
 
@@ -20,7 +20,7 @@ pub struct NewStaff {
     pub customer_id: i64,
     pub name: String,
     pub phone: String,
-    pub fob: Option<String>,
+    pub fob: Option<i32>,
 }
 
 #[derive(Clone)]
@@ -29,7 +29,7 @@ pub struct StaffRepository {
 }
 
 impl StaffRepository {
-    pub async fn create(&self, new_staff: &NewStaff, pin: &str) -> Result<Staff, sqlx::Error> {
+    pub async fn create(&self, new_staff: &NewStaff, pin: i32) -> Result<Staff, sqlx::Error> {
         sqlx::query_as!(
             Staff,
             r#"insert into staff (customer_id, name, phone, pin, fob) values ($1, $2, $3, $4, $5) returning *"#,
@@ -56,7 +56,7 @@ impl StaffRepository {
         .await
     }
 
-    pub async fn update_pin(&self, id: i64, new_pin: &str) -> Result<Staff, sqlx::Error> {
+    pub async fn update_pin(&self, id: i64, new_pin: i32) -> Result<Staff, sqlx::Error> {
         sqlx::query_as!(
             Staff,
             r#"update staff set pin = $1 where id = $2 returning *"#,
@@ -70,7 +70,7 @@ impl StaffRepository {
     pub async fn fetch_all(&self, customer_id: i64) -> Result<Vec<Staff>, sqlx::Error> {
         sqlx::query_as!(
             Staff,
-            r#"select * from staff where customer_id = $1"#,
+            r#"select * from staff where customer_id = $1 order by name"#,
             customer_id
         )
         .fetch_all(&self.pool)

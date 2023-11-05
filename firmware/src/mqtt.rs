@@ -57,10 +57,24 @@ fn process_user_message(msg: &EspMqttMessage, user_db: UserDB) {
     log::info!("msg: {:?}, data: {:?}", msg, msg.data());
     match bincode::decode_from_slice(msg.data(), BINCODE_CONFIG) {
         Ok((UserAction::Add(code), _)) => {
-            user_db.add(&code);
+            if let Err(e) = user_db.add(code) {
+                log::error!("Error adding new code {}", e);
+            }
         }
         Ok((UserAction::Del(code), _)) => {
-            user_db.delete(&code);
+            if let Err(e) = user_db.delete(code) {
+                log::error!("Error deleting code {}", e);
+            }
+        }
+        Ok((UserAction::Replace { old, new }, _)) => {
+            if let Err(e) = user_db.replace(old, new) {
+                log::error!("Error replacing code {}", e);
+            }
+        }
+        Ok((UserAction::Bulk(codes), _)) => {
+            if let Err(e) = user_db.bulk(codes) {
+                log::error!("Error bulk inserting codes {}", e);
+            }
         }
         Err(e) => {
             log::error!("decoding error: {}", e);

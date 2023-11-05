@@ -41,7 +41,7 @@ pub async fn start(pool: PgPool) -> anyhow::Result<AsyncClient> {
                     let code_type = audit.code_type.to_string();
                     let date: DateTime<Utc> = audit.timestamp.into();
                     match entry_repo
-                        .create_with_code(&audit.code, &code_type, audit.success, &date)
+                        .create_with_code(audit.code, &code_type, audit.success, &date)
                         .await
                     {
                         Ok(log) => {

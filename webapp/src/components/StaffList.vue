@@ -62,10 +62,9 @@ async function addStaffMember() {
           </span>
           <input
             v-model="newStaff.fob"
-            type="text"
+            type="number"
             class="form-control form-control-sm"
             placeholder="Fob (Optional)"
-            pattern="\d{8}"
           />
         </div>
       </div>

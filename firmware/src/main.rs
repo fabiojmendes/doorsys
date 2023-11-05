@@ -69,6 +69,14 @@ fn setup_door(pin: impl OutputPin, door_rx: Receiver<()>) -> anyhow::Result<()> 
     Ok(())
 }
 
+fn keys_to_int(keys: &[u8]) -> i32 {
+    keys.iter()
+        .cloned()
+        .rev()
+        .enumerate()
+        .fold(0, |acc, (i, num)| acc + 10i32.pow(i as u32) * num as i32)
+}
+
 fn setup_reader(
     door_tx: Sender<()>,
     user_db: UserDB,
@@ -86,11 +94,11 @@ fn setup_reader(
                 Ok(Packet::Key { key }) => {
                     if key == HASH_KEY {
                         log::info!("open door {:?}", keys);
-                        let pin: String = keys.iter().cloned().map(|i: u8| i.to_string()).collect();
-                        let contains = user_db.contains(&pin);
-                        log::info!("contains pin: {:?}", contains);
+                        let pin = keys_to_int(&keys);
+                        let contains = user_db.contains(pin);
+                        log::info!("contains pin {}: {:?}", pin, contains);
                         let audit = Audit {
-                            code: pin.clone(),
+                            code: pin,
                             code_type: CodeType::Pin,
                             timestamp: SystemTime::now(),
                             success: contains,
@@ -111,10 +119,9 @@ fn setup_reader(
                 }
                 Ok(Packet::Card { rfid }) => {
                     log::info!("RFID: {}", rfid);
-                    let rfid_str = rfid.to_string();
-                    let contains = user_db.contains(&rfid_str);
+                    let contains = user_db.contains(rfid);
                     let audit = Audit {
-                        code: rfid.to_string(),
+                        code: rfid,
                         code_type: CodeType::Fob,
                         timestamp: SystemTime::now(),
                         success: contains,
@@ -216,7 +223,7 @@ fn main() -> anyhow::Result<()> {
 
     let doorsys_nvs = EspNvs::new(nvs_part.clone(), "doorsys", true)?;
 
-    let user_db = UserDB::new(doorsys_nvs);
+    let user_db = UserDB::new(doorsys_nvs)?;
 
     log::info!("Starting application");
 

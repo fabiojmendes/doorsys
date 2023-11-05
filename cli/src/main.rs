@@ -27,16 +27,28 @@ fn main() {
             .publish("doorsys/open", QoS::AtMostOnce, false, vec![])
             .unwrap();
 
-        let user_add = UserAction::Del(String::from("1234"));
+        let user_add = UserAction::Add(123456);
         if let Ok(payload) = bincode::encode_to_vec(user_add, CONFIG) {
             client
-                .publish("doorsys/user", QoS::AtMostOnce, false, payload)
+                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+                .unwrap();
+        }
+        let user_add = UserAction::Add(654321);
+        if let Ok(payload) = bincode::encode_to_vec(user_add, CONFIG) {
+            client
+                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+                .unwrap();
+        }
+        let user_add = UserAction::Add(872398);
+        if let Ok(payload) = bincode::encode_to_vec(user_add, CONFIG) {
+            client
+                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
                 .unwrap();
         }
 
         let audit = Audit {
             timestamp: SystemTime::now(),
-            code: "12983".to_owned(),
+            code: 1234,
             code_type: CodeType::Pin,
             success: false,
         };

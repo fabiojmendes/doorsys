@@ -21,8 +21,8 @@ const PIN_TIMEOUT: Duration = Duration::from_secs(10);
 #[link_section = ".iram1.text"]
 unsafe extern "C" fn wiegand_interrupt(arg: *mut c_void) {
     let reader = &mut *(arg as *mut Reader);
-    let d0 = gpio_get_level(reader.gpio_d0) as u32;
-    let d1 = gpio_get_level(reader.gpio_d1) as u32;
+    let d0 = gpio_get_level(reader.gpio_d0);
+    let d1 = gpio_get_level(reader.gpio_d1);
     if d0 == d1 {
         return;
     }
@@ -90,7 +90,7 @@ pub enum Packet {
         key: u8,
     },
     Card {
-        rfid: u32,
+        rfid: i32,
     },
     Unknown {
         bits: usize,
@@ -120,6 +120,8 @@ impl Packet {
                 // Remove partiy check bits
                 rfid &= !(1 << 25);
                 rfid >>= 1;
+
+                let rfid = rfid as i32;
 
                 Self::Card { rfid }
             }
