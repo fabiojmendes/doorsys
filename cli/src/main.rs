@@ -1,11 +1,8 @@
-use std::{
-    thread,
-    time::{Duration, SystemTime},
-};
+use std::{thread, time::Duration};
 
 use bincode::config::Configuration;
 use chrono::{DateTime, Utc};
-use doorsys_protocol::{Audit, CodeType, UserAction};
+use doorsys_protocol::{Audit, UserAction};
 use rumqttc::{Client, Event, MqttOptions, Packet, QoS};
 
 const CONFIG: Configuration = bincode::config::standard();
@@ -27,34 +24,15 @@ fn main() {
             .publish("doorsys/open", QoS::AtMostOnce, false, vec![])
             .unwrap();
 
-        let user_add = UserAction::Add(123456);
-        if let Ok(payload) = bincode::encode_to_vec(user_add, CONFIG) {
-            client
-                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-                .unwrap();
-        }
-        let user_add = UserAction::Add(654321);
-        if let Ok(payload) = bincode::encode_to_vec(user_add, CONFIG) {
-            client
-                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-                .unwrap();
-        }
-        let user_add = UserAction::Add(872398);
-        if let Ok(payload) = bincode::encode_to_vec(user_add, CONFIG) {
-            client
-                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-                .unwrap();
+        let mut codes = Vec::new();
+        for i in 0..480 {
+            codes.push(i);
         }
 
-        let audit = Audit {
-            timestamp: SystemTime::now(),
-            code: 1234,
-            code_type: CodeType::Pin,
-            success: false,
-        };
-        if let Ok(payload) = bincode::encode_to_vec(audit, CONFIG) {
+        let user_add = UserAction::Bulk(codes);
+        if let Ok(payload) = bincode::encode_to_vec(user_add, CONFIG) {
             client
-                .publish("doorsys/audit", QoS::AtLeastOnce, false, payload)
+                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
                 .unwrap();
         }
     });

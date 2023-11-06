@@ -17,6 +17,8 @@ async function loadStaff() {
 }
 
 async function save() {
+  // Set fob to null if empty
+  staff.value.fob ||= null
   const res = await api.put(`/staff/${staff.value.id}`, staff.value)
   staff.value = res.data
 }

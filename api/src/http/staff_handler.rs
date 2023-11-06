@@ -13,7 +13,7 @@ use rumqttc::{AsyncClient, QoS};
 
 fn generate_pin() -> i32 {
     let mut rng = rand::thread_rng();
-    rng.gen_range(0..999999)
+    rng.gen_range(100000..999999)
 }
 
 pub async fn create(
@@ -60,10 +60,25 @@ pub async fn list(
 
 pub async fn update(
     State(staff_repo): State<StaffRepository>,
+    State(mqtt_client): State<AsyncClient>,
     Path(id): Path<i64>,
     Json(update_staff): Json<NewStaff>,
 ) -> HttpResult<Json<Staff>> {
+    let old_staff = staff_repo.fetch_one(id).await?;
     let staff = staff_repo.update(id, &update_staff).await?;
+
+    if let Some(action) = match (old_staff.fob, staff.fob) {
+        (Some(old), Some(new)) if old != new => Some(UserAction::Replace { old, new }),
+        (None, Some(fob)) => Some(UserAction::Add(fob)),
+        (Some(fob), None) => Some(UserAction::Del(fob)),
+        _ => None,
+    } {
+        if let Ok(payload) = bincode::encode_to_vec(action, mqtt::BINCODE_CONFIG) {
+            mqtt_client
+                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+                .await?;
+        }
+    }
     Ok(Json(staff))
 }
 
@@ -73,11 +88,14 @@ pub async fn update_pin(
     Path(id): Path<i64>,
 ) -> HttpResult<Json<Staff>> {
     let old_staff = staff_repo.fetch_one(id).await?;
-    let old = old_staff.pin;
-    let new = generate_pin();
-    let staff = staff_repo.update_pin(id, new).await?;
+    let old_pin = old_staff.pin;
+    let new_pin = generate_pin();
+    let staff = staff_repo.update_pin(id, new_pin).await?;
 
-    let replace_pin = UserAction::Replace { old, new };
+    let replace_pin = UserAction::Replace {
+        old: old_pin,
+        new: new_pin,
+    };
     if let Ok(payload) = bincode::encode_to_vec(replace_pin, mqtt::BINCODE_CONFIG) {
         mqtt_client
             .publish("doorsys/user", QoS::AtLeastOnce, false, payload)

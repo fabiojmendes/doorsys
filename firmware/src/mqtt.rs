@@ -11,6 +11,9 @@ const MQTT_PASS: &str = env!("MQTT_PASS");
 
 const BINCODE_CONFIG: bincode::config::Configuration = bincode::config::standard();
 
+static mut SHARED_BUF: Vec<u8> = Vec::new();
+static mut SHARED_TOPIC: String = String::new();
+
 pub fn setup_mqtt(user_db: UserDB, door_tx: Sender<()>) -> anyhow::Result<EspMqttClient<'static>> {
     let mqtt_config = MqttClientConfiguration {
         client_id: Some("doorsys"),
@@ -33,45 +36,65 @@ pub fn setup_mqtt(user_db: UserDB, door_tx: Sender<()>) -> anyhow::Result<EspMqt
 }
 
 fn route_message(msg: &EspMqttMessage, user_db: UserDB, door_tx: &Sender<()>) {
-    match msg.topic() {
-        Some("doorsys/user") => process_user_message(msg, user_db),
-        Some("doorsys/open") => proccess_open_message(msg, door_tx),
-        Some(topic) => log::warn!("unknown topic {}", topic),
-        None => log::error!("no topic provided"),
-    }
+    log::info!(
+        "Message received {:?} {:?}, {} bytes",
+        msg.topic(),
+        msg.details(),
+        msg.data().len()
+    );
+    let (topic, data) = match msg.details() {
+        Details::InitialChunk(init) => unsafe {
+            SHARED_BUF = Vec::with_capacity(init.total_data_size);
+            SHARED_BUF.extend_from_slice(msg.data());
+            SHARED_TOPIC = String::from(msg.topic().unwrap());
+            return;
+        },
+        Details::SubsequentChunk(_sub) => unsafe {
+            SHARED_BUF.extend_from_slice(msg.data());
+            log::info!("len {} cap {}", SHARED_BUF.len(), SHARED_BUF.capacity());
+            if SHARED_BUF.len() != SHARED_BUF.capacity() {
+                return;
+            }
+            (&*SHARED_TOPIC, &*SHARED_BUF)
+        },
+        Details::Complete => (msg.topic().unwrap(), msg.data()),
+    };
+    match topic {
+        "doorsys/user" => process_user_message(data, user_db),
+        "doorsys/open" => proccess_open_message(door_tx),
+        _ => log::warn!("unknown topic {}", topic),
+    };
 }
 
-fn proccess_open_message(msg: &EspMqttMessage, door_tx: &Sender<()>) {
-    log::info!("open door from mqtt {:?}", msg);
+fn proccess_open_message(door_tx: &Sender<()>) {
+    log::info!("Open door from mqtt");
     if let Err(e) = door_tx.send(()) {
         log::error!("error sending door message {}", e);
     }
 }
 
-fn process_user_message(msg: &EspMqttMessage, user_db: UserDB) {
-    if msg.details() != &Details::Complete {
-        log::error!("incomplete message, dropping {:?}", msg);
-        return;
-    }
-
-    log::info!("msg: {:?}, data: {:?}", msg, msg.data());
-    match bincode::decode_from_slice(msg.data(), BINCODE_CONFIG) {
+fn process_user_message(data: &[u8], user_db: UserDB) {
+    match bincode::decode_from_slice(data, BINCODE_CONFIG) {
         Ok((UserAction::Add(code), _)) => {
+            log::info!("Adding code {}", code);
             if let Err(e) = user_db.add(code) {
                 log::error!("Error adding new code {}", e);
             }
         }
         Ok((UserAction::Del(code), _)) => {
+            log::info!("Deleting code {}", code);
             if let Err(e) = user_db.delete(code) {
                 log::error!("Error deleting code {}", e);
             }
         }
         Ok((UserAction::Replace { old, new }, _)) => {
+            log::info!("Replacing code {} with {}", old, new);
             if let Err(e) = user_db.replace(old, new) {
                 log::error!("Error replacing code {}", e);
             }
         }
         Ok((UserAction::Bulk(codes), _)) => {
+            log::info!("Bulk adding codes {}", codes.len());
             if let Err(e) = user_db.bulk(codes) {
                 log::error!("Error bulk inserting codes {}", e);
             }
