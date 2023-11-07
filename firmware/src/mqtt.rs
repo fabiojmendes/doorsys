@@ -51,7 +51,6 @@ fn route_message(msg: &EspMqttMessage, user_db: UserDB, door_tx: &Sender<()>) {
         },
         Details::SubsequentChunk(_sub) => unsafe {
             SHARED_BUF.extend_from_slice(msg.data());
-            log::info!("len {} cap {}", SHARED_BUF.len(), SHARED_BUF.capacity());
             if SHARED_BUF.len() != SHARED_BUF.capacity() {
                 return;
             }

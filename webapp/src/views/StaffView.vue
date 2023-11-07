@@ -50,7 +50,13 @@ async function resetPin() {
         </div>
         <div class="mb-3">
           <label for="fob" class="form-label">Fob</label>
-          <input type="number" v-model="staff.fob" class="form-control" placeholder="(Optional)" />
+          <input
+            type="number"
+            max="16777216"
+            v-model="staff.fob"
+            class="form-control"
+            placeholder="(Optional)"
+          />
         </div>
         <div>
           <label for="pin" class="form-label">Pin</label>

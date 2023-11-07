@@ -63,6 +63,7 @@ async function addStaffMember() {
           <input
             v-model="newStaff.fob"
             type="number"
+            max="16777216"
             class="form-control form-control-sm"
             placeholder="Fob (Optional)"
           />

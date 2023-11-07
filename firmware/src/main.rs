@@ -16,10 +16,12 @@ use esp_idf_svc::mqtt::client::QoS;
 use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs};
 use esp_idf_svc::sys::{
     esp, gpio_install_isr_service, heap_caps_get_free_size, heap_caps_get_largest_free_block,
-    heap_caps_get_minimum_free_size, heap_caps_get_total_size, ESP_INTR_FLAG_IRAM,
+    heap_caps_get_minimum_free_size, heap_caps_get_total_size, nvs_get_stats, ESP_INTR_FLAG_IRAM,
     MALLOC_CAP_DEFAULT,
 };
 use esp_idf_svc::systime::EspSystemTime;
+use std::mem;
+use std::ptr;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
@@ -93,19 +95,18 @@ fn setup_reader(
             match packet {
                 Ok(Packet::Key { key }) => {
                     if key == HASH_KEY {
-                        log::info!("open door {:?}", keys);
                         let pin = keys_to_int(&keys);
                         let contains = user_db.contains(pin);
-                        log::info!("contains pin {}: {:?}", pin, contains);
+                        log::info!("Valid pin {}: {}", pin, contains);
+                        if contains {
+                            door_tx.send(()).unwrap();
+                        }
                         let audit = Audit {
                             code: pin,
                             code_type: CodeType::Pin,
                             timestamp: SystemTime::now(),
                             success: contains,
                         };
-                        if contains {
-                            door_tx.send(()).unwrap();
-                        }
                         if let Err(e) = audit_tx.send(audit) {
                             log::error!("error sending audit record: {}", e);
                         }
@@ -118,17 +119,17 @@ fn setup_reader(
                     }
                 }
                 Ok(Packet::Card { rfid }) => {
-                    log::info!("RFID: {}", rfid);
                     let contains = user_db.contains(rfid);
+                    log::info!("Valid rfid {}: {}", rfid, contains);
+                    if contains {
+                        door_tx.send(()).unwrap();
+                    }
                     let audit = Audit {
                         code: rfid,
                         code_type: CodeType::Fob,
                         timestamp: SystemTime::now(),
                         success: contains,
                     };
-                    if contains {
-                        door_tx.send(()).unwrap();
-                    }
                     if let Err(e) = audit_tx.send(audit) {
                         log::error!("error sending audit record: {}", e);
                     }
@@ -197,6 +198,28 @@ fn health_check(mqtt_client: Arc<Mutex<EspMqttClient<'static>>>) -> anyhow::Resu
             QoS::AtMostOnce,
             false,
             heap.as_bytes(),
+        ) {
+            log::warn!("mqtt enqueue error: {}", e);
+        }
+
+        let nvs = unsafe {
+            let mut stats = mem::MaybeUninit::uninit();
+            if let Err(e) = esp!(nvs_get_stats(ptr::null(), stats.as_mut_ptr())) {
+                format!("error: {}", e)
+            } else {
+                let stats = stats.assume_init();
+                let used = stats.used_entries;
+                let free = stats.free_entries;
+                let total = stats.total_entries;
+                format!("nvs,host=doorsys used={used},free={free},total={total} {time}")
+            }
+        };
+        log::info!("{}", nvs);
+        if let Err(e) = mqtt_client.lock().unwrap().enqueue(
+            "doorsys/status",
+            QoS::AtMostOnce,
+            false,
+            nvs.as_bytes(),
         ) {
             log::warn!("mqtt enqueue error: {}", e);
         }
