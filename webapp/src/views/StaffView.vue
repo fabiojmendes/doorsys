@@ -7,6 +7,7 @@ const api = inject('api')
 const route = useRoute()
 
 const staff = ref({})
+const status = ref({})
 
 onMounted(loadStaff)
 
@@ -18,9 +19,19 @@ async function loadStaff() {
 
 async function save() {
   // Set fob to null if empty
+  status.value = {}
   staff.value.fob ||= null
-  const res = await api.put(`/staff/${staff.value.id}`, staff.value)
-  staff.value = res.data
+  try {
+    const res = await api.put(`/staff/${staff.value.id}`, staff.value)
+    staff.value = res.data
+    status.value = { class: 'alert-success', message: 'Saved with success' }
+  } catch (e) {
+    status.value = {
+      class: 'alert-danger',
+      message: e,
+      context: e.response?.data?.msg || e.response?.data
+    }
+  }
 }
 
 async function resetPin() {
@@ -69,6 +80,13 @@ async function resetPin() {
         </div>
         <div class="d-inline-flex gap-2">
           <input type="submit" class="btn btn-primary" value="Save" />
+        </div>
+        <div v-if="status.message" :class="status.class" class="mt-3 alert" role="alert">
+          <p>{{ status.message }}</p>
+          <template v-if="status.context">
+            <hr />
+            <p>{{ status.context }}</p>
+          </template>
         </div>
       </form>
     </div>

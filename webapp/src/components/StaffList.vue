@@ -9,6 +9,7 @@ const props = defineProps({ customer: Object })
 const staffList = ref([])
 const formName = ref({})
 const newStaff = ref({})
+const status = ref({})
 
 onMounted(async () => {
   const res = await api.get(`/customers/${props.customer.id}/staff`)
@@ -16,11 +17,18 @@ onMounted(async () => {
 })
 
 async function addStaffMember() {
-  console.log(newStaff.value)
-  const res = await api.post('/staff', { customerId: props.customer.id, ...newStaff.value })
-  staffList.value.push(res.data)
-  newStaff.value = {}
-  formName.value.focus()
+  status.value = {}
+  try {
+    const res = await api.post('/staff', { customerId: props.customer.id, ...newStaff.value })
+    staffList.value.push(res.data)
+    newStaff.value = {}
+    formName.value.focus()
+  } catch (e) {
+    status.value = {
+      message: e,
+      context: e.response?.data?.msg
+    }
+  }
 }
 </script>
 
@@ -72,6 +80,13 @@ async function addStaffMember() {
       <div class="text-end">
         <input type="reset" class="btn btn-secondary btn-sm" value="Reset" />
         <input type="submit" class="btn btn-primary btn-sm ms-2" value="Add" />
+      </div>
+      <div v-show="status.message" class="mt-3 alert alert-danger" role="alert">
+        <p>{{ status.message }}</p>
+        <template v-if="status.context">
+          <hr />
+          <p class="mb-0">{{ status.context }}</p>
+        </template>
       </div>
     </form>
     <table class="table table-hover">
