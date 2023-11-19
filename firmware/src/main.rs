@@ -38,11 +38,12 @@ const DOOR_OPEN_DELAY: Duration = Duration::from_secs(6);
 
 const GPIO_D0: i32 = 4;
 const GPIO_D1: i32 = 5;
-const GPIO_BUTTON: i32 = 0;
+const GPIO_BUTTON: i32 = 18;
 
 fn setup_button(door_tx: Sender<()>) {
     thread::spawn(move || {
-        let button = Button::new(GPIO_BUTTON).unwrap();
+        let mut button = Button::new(GPIO_BUTTON);
+        button.start().unwrap();
 
         loop {
             if button.wait_for_press() {

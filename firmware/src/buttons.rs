@@ -1,15 +1,17 @@
 use std::{ffi::c_void, ptr};
 
 use esp_idf_svc::sys::{
-    esp, gpio_config, gpio_config_t, gpio_int_type_t_GPIO_INTR_NEGEDGE, gpio_isr_handler_add,
-    gpio_mode_t_GPIO_MODE_INPUT, vQueueDelete, xQueueGenericCreate, xQueueGiveFromISR,
-    xQueueReceive, QueueDefinition,
+    esp, gpio_config, gpio_config_t, gpio_get_level, gpio_int_type_t_GPIO_INTR_NEGEDGE,
+    gpio_isr_handler_add, gpio_mode_t_GPIO_MODE_INPUT, vQueueDelete, xQueueGenericCreate,
+    xQueueGiveFromISR, xQueueReceive, QueueDefinition,
 };
 
 #[link_section = ".iram1.text"]
 unsafe extern "C" fn button_interrupt(arg: *mut c_void) {
-    let queue = arg as *mut QueueDefinition;
-    xQueueGiveFromISR(queue, ptr::null_mut());
+    let button = &mut *(arg as *mut Button);
+    if gpio_get_level(button.gpio) == 0 {
+        xQueueGiveFromISR(button.queue, ptr::null_mut());
+    }
 }
 
 pub struct Button {
@@ -18,13 +20,16 @@ pub struct Button {
 }
 
 impl Button {
-    pub fn new(gpio: i32) -> anyhow::Result<Button> {
+    pub fn new(gpio: i32) -> Button {
         let queue = unsafe { xQueueGenericCreate(1, 0, 0) };
-        let button = Button { gpio, queue };
+        Button { gpio, queue }
+    }
+
+    pub fn start(&mut self) -> anyhow::Result<()> {
         let io_conf = gpio_config_t {
-            pin_bit_mask: (1 << gpio),
+            pin_bit_mask: (1 << self.gpio),
             mode: gpio_mode_t_GPIO_MODE_INPUT,
-            pull_up_en: true.into(),
+            pull_up_en: false.into(),
             pull_down_en: false.into(),
             intr_type: gpio_int_type_t_GPIO_INTR_NEGEDGE,
         };
@@ -35,13 +40,13 @@ impl Button {
 
             // Registers our function with the generic GPIO interrupt handler we installed earlier.
             esp!(gpio_isr_handler_add(
-                button.gpio,
+                self.gpio,
                 Some(button_interrupt),
-                queue as *mut c_void,
+                self as *mut _ as *mut c_void,
             ))?;
         }
 
-        Ok(button)
+        Ok(())
     }
 
     pub fn wait_for_press(&self) -> bool {
