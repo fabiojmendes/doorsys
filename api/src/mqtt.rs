@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use bincode::config::Configuration;
 use chrono::{DateTime, Utc};
 use doorsys_protocol::Audit;
@@ -11,12 +9,8 @@ use crate::domain::entry_log::EntryLogRepository;
 
 pub const BINCODE_CONFIG: Configuration = bincode::config::standard();
 
-pub async fn start(pool: PgPool) -> anyhow::Result<AsyncClient> {
-    let mut mqtt_opts = MqttOptions::new("doorsys-api", "rpi.home", 1883);
-    mqtt_opts
-        .set_keep_alive(Duration::from_secs(5))
-        .set_credentials("esp", "aurora")
-        .set_clean_session(false);
+pub async fn start(pool: PgPool, mqtt_url: &str) -> anyhow::Result<AsyncClient> {
+    let mqtt_opts = MqttOptions::parse_url(mqtt_url)?;
 
     let (client, mut connection) = AsyncClient::new(mqtt_opts, 10);
     client.subscribe("doorsys/audit", QoS::AtLeastOnce).await?;

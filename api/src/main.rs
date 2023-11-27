@@ -19,7 +19,8 @@ async fn main() -> anyhow::Result<()> {
 
     sqlx::migrate!().run(&pool).await?;
 
-    let mqtt_client = mqtt::start(pool.clone()).await?;
+    let mqtt_url = env::var("MQTT_URL")?;
+    let mqtt_client = mqtt::start(pool.clone(), &mqtt_url).await?;
 
     http::serve(pool, mqtt_client).await
 }
