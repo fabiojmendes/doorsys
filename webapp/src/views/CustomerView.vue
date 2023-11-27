@@ -76,10 +76,12 @@ async function save() {
         <h5 class="card-title">
           {{ customer.name }}
         </h5>
-        <p class="card-text">
+        <div class="card-text">
           {{ customer.email }}
-          {{ customer.notes }}
-        </p>
+          <p>
+            {{ customer.notes }}
+          </p>
+        </div>
         <button type="button" class="btn btn-primary" @click="toggleEdit">Edit</button>
       </div>
     </div>
