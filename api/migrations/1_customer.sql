@@ -3,5 +3,6 @@
 create table customer (
   id bigserial primary key,
   name varchar not null,
-  email varchar not null
+  email varchar not null,
+  notes text
 );

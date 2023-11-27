@@ -7,6 +7,7 @@ pub struct Customer {
     pub id: i64,
     pub name: String,
     pub email: String,
+    pub notes: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -14,6 +15,7 @@ pub struct Customer {
 pub struct NewCustomer {
     pub name: String,
     pub email: String,
+    pub notes: Option<String>,
 }
 
 #[derive(Clone)]
@@ -41,9 +43,10 @@ impl CustomerRepository {
     ) -> Result<Customer, sqlx::Error> {
         sqlx::query_as!(
             Customer,
-            r#"update customer set name = $1, email = $2 where id = $3 returning *"#,
+            r#"update customer set name = $1, email = $2, notes = $3 where id = $4 returning *"#,
             new_customer.name,
             new_customer.email,
+            new_customer.notes,
             id,
         )
         .fetch_one(&self.pool)
@@ -53,9 +56,10 @@ impl CustomerRepository {
     pub async fn create(&self, new_customer: &NewCustomer) -> Result<Customer, sqlx::Error> {
         sqlx::query_as!(
             Customer,
-            r#"insert into customer (name, email) values ($1, $2) returning *"#,
+            r#"insert into customer (name, email, notes) values ($1, $2, $3) returning *"#,
             new_customer.name,
             new_customer.email,
+            new_customer.notes,
         )
         .fetch_one(&self.pool)
         .await

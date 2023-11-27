@@ -123,7 +123,7 @@ pub async fn serve(pool: PgPool, mqtt_client: AsyncClient) -> anyhow::Result<()>
         .layer(CorsLayer::permissive())
         .with_state(app_state);
 
-    let listerner = TcpListener::bind("127.0.0.1:3000").await?;
+    let listerner = TcpListener::bind("0.0.0.0:3000").await?;
     axum::serve(listerner, app)
         .await
         .context("error running HTTP server")

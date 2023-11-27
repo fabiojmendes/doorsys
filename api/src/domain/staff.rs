@@ -11,6 +11,7 @@ pub struct Staff {
     pub phone: String,
     pub pin: i32,
     pub fob: Option<i32>,
+    pub active: bool,
     pub created: DateTime<Utc>,
 }
 

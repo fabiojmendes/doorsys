@@ -7,5 +7,6 @@ create table staff (
   phone varchar not null,
   pin int not null unique,
   fob int unique,
+  active boolean not null default true,
   created timestamptz not null default current_timestamp
 );

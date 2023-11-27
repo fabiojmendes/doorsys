@@ -1,5 +1,5 @@
 [package]
-name = "doorsys_api"
+name = "doorsys-api"
 version = "0.1.0"
 edition = "2021"
 
