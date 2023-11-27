@@ -261,10 +261,14 @@ fn main() -> anyhow::Result<()> {
 
     network::setup_wireless(peripherals.modem, sysloop.clone(), nvs_part.clone())?;
 
-    let mqtt_client = Arc::new(Mutex::new(mqtt::setup_mqtt(
-        user_db.clone(),
-        door_tx.clone(),
-    )?));
+    let mqtt_result = loop {
+        if let Ok(mqtt_result) = mqtt::setup_mqtt(user_db.clone(), door_tx.clone()) {
+            break mqtt_result;
+        }
+        log::warn!("Unable to connect to mqtt, retrying in 60s");
+        thread::sleep(Duration::from_secs(60));
+    };
+    let mqtt_client = Arc::new(Mutex::new(mqtt_result));
 
     setup_audit_publiher(mqtt_client.clone(), audit_rx);
 
