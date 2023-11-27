@@ -1,8 +1,8 @@
-use std::{thread, time::Duration};
+use std::time::Duration;
 
 use bincode::config::Configuration;
 use chrono::{DateTime, Utc};
-use doorsys_protocol::{Audit, UserAction};
+use doorsys_protocol::Audit;
 use rumqttc::{Client, Event, MqttOptions, Packet, QoS};
 
 const CONFIG: Configuration = bincode::config::standard();
@@ -18,24 +18,6 @@ fn main() {
 
     let (mut client, mut connection) = Client::new(mqtt_opts, 10);
     client.subscribe("doorsys/user", QoS::AtLeastOnce).unwrap();
-
-    thread::spawn(move || {
-        client
-            .publish("doorsys/open", QoS::AtMostOnce, false, vec![])
-            .unwrap();
-
-        let mut codes = Vec::new();
-        for i in 0..480 {
-            codes.push(i);
-        }
-
-        let user_add = UserAction::Bulk(codes);
-        if let Ok(payload) = bincode::encode_to_vec(user_add, CONFIG) {
-            client
-                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-                .unwrap();
-        }
-    });
 
     // Iterate to poll the eventloop for connection progress
     for (i, notification) in connection.iter().enumerate() {
