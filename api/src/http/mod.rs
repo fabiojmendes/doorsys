@@ -7,11 +7,12 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
-    Json, Router, Server,
+    Json, Router,
 };
 use rumqttc::AsyncClient;
 use serde_json::json;
 use sqlx::PgPool;
+use tokio::net::TcpListener;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 pub mod customer_handler;
@@ -122,8 +123,8 @@ pub async fn serve(pool: PgPool, mqtt_client: AsyncClient) -> anyhow::Result<()>
         .layer(CorsLayer::permissive())
         .with_state(app_state);
 
-    Server::bind(&"127.0.0.1:3000".parse()?)
-        .serve(app.into_make_service())
+    let listerner = TcpListener::bind("127.0.0.1:3000").await?;
+    axum::serve(listerner, app)
         .await
         .context("error running HTTP server")
 }
