@@ -47,4 +47,6 @@ jobs:
         context: webapp
         push: true
         file: webapp/Dockerfile
-        tags: ghcr.io/${{ github.repository }}-web:latest  
+        tags: ghcr.io/${{ github.repository }}-web:latest
+        secrets: |
+          "VITE_BASE_API_URL=${{ secrets.BASE_API_URL }}"
