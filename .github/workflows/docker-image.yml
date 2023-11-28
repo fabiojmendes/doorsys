@@ -41,8 +41,6 @@ jobs:
 
       - name: Build and push web
         uses: docker/build-push-action@v5
-        env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
         with:
           context: webapp
           push: true
