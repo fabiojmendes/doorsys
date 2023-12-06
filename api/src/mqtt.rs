@@ -13,7 +13,7 @@ pub async fn start(pool: PgPool, mqtt_url: &str) -> anyhow::Result<AsyncClient> 
     let mqtt_opts = MqttOptions::parse_url(mqtt_url)?;
 
     let (client, mut connection) = AsyncClient::new(mqtt_opts, 10);
-    client.subscribe("doorsys/audit", QoS::AtLeastOnce).await?;
+    client.subscribe("doorsys/audit", QoS::ExactlyOnce).await?;
 
     task::spawn(async move {
         let entry_repo = EntryLogRepository { pool };

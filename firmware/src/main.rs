@@ -34,7 +34,7 @@ use crate::wiegand::Reader;
 
 const MAX_PIN_LENGTH: usize = 8;
 const HASH_KEY: u8 = 0x0B;
-const DOOR_OPEN_DELAY: Duration = Duration::from_secs(6);
+const DOOR_OPEN_DELAY: Duration = Duration::from_secs(2);
 
 const GPIO_D0: i32 = 4;
 const GPIO_D1: i32 = 5;
@@ -164,7 +164,7 @@ fn setup_audit_publiher(
                 Ok(buffer) => {
                     if let Err(e) = mqtt_client.lock().unwrap().enqueue(
                         "doorsys/audit",
-                        QoS::AtLeastOnce,
+                        QoS::ExactlyOnce,
                         false,
                         &buffer,
                     ) {
