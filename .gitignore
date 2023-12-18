@@ -19,3 +19,5 @@ Cargo.lock
 
 # Ignore IntelliJ Files
 .idea
+
+.DS_Store
