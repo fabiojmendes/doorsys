@@ -6,7 +6,7 @@ use esp_idf_svc::sys::{
     xQueueGiveFromISR, xQueueReceive, QueueDefinition,
 };
 
-#[link_section = ".iram1.text"]
+#[link_section = ".iram0.text"]
 unsafe extern "C" fn button_interrupt(arg: *mut c_void) {
     let button = &mut *(arg as *mut Button);
     if gpio_get_level(button.gpio) == 0 {

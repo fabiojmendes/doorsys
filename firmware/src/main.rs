@@ -38,7 +38,7 @@ const DOOR_OPEN_DELAY: Duration = Duration::from_secs(2);
 
 const GPIO_D0: i32 = 4;
 const GPIO_D1: i32 = 5;
-const GPIO_BUTTON: i32 = 18;
+const GPIO_BUTTON: i32 = 6;
 
 fn setup_button(door_tx: Sender<()>) {
     thread::spawn(move || {
@@ -252,7 +252,7 @@ fn main() -> anyhow::Result<()> {
     log::info!("Starting application");
 
     let (door_tx, door_rx) = mpsc::channel();
-    setup_door(peripherals.pins.gpio16, door_rx)?;
+    setup_door(peripherals.pins.gpio10, door_rx)?;
 
     setup_button(door_tx.clone());
 

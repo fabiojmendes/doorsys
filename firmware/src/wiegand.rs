@@ -18,7 +18,7 @@ const WIEGAND_TIMEOUT: u64 = 50000; // 50ms
 const BUFFER_SIZE: usize = 4;
 const PIN_TIMEOUT: Duration = Duration::from_secs(10);
 
-#[link_section = ".iram1.text"]
+#[link_section = ".iram0.text"]
 unsafe extern "C" fn wiegand_interrupt(arg: *mut c_void) {
     let reader = &mut *(arg as *mut Reader);
     let d0 = gpio_get_level(reader.gpio_d0);

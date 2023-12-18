@@ -16,7 +16,7 @@ static mut SHARED_TOPIC: String = String::new();
 
 pub fn setup_mqtt(user_db: UserDB, door_tx: Sender<()>) -> anyhow::Result<EspMqttClient<'static>> {
     let mqtt_config = MqttClientConfiguration {
-        client_id: Some("doorsys"),
+        client_id: Some("doorsys-v2"),
         username: Some(MQTT_USER),
         password: Some(MQTT_PASS),
         disable_clean_session: true,
