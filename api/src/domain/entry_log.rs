@@ -78,6 +78,7 @@ impl EntryLogRepository {
             left join staff s on s.id = e.staff_id
             left join customer c on s.customer_id = c.id
             order by e.event_date desc
+            limit 50
             "#,
         )
         .fetch_all(&self.pool)
