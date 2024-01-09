@@ -19,7 +19,6 @@ pub fn setup_mqtt(user_db: UserDB, door_tx: Sender<()>) -> anyhow::Result<EspMqt
         client_id: Some("doorsys-v2"),
         username: Some(MQTT_USER),
         password: Some(MQTT_PASS),
-        disable_clean_session: true,
         ..Default::default()
     };
 

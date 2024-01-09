@@ -191,7 +191,7 @@ fn health_check(mqtt_client: Arc<Mutex<EspMqttClient<'static>>>) -> anyhow::Resu
             let free = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
             let minimum = heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT);
             let largest_free = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
-            format!("heap,host=doorsys free={free},total={total},minimum={minimum},largest_free={largest_free} {time}")
+            format!("heap,host=doorsys-v2 free={free},total={total},minimum={minimum},largest_free={largest_free} {time}")
         };
         log::info!("{}", heap);
         if let Err(e) = mqtt_client.lock().unwrap().enqueue(
@@ -212,7 +212,7 @@ fn health_check(mqtt_client: Arc<Mutex<EspMqttClient<'static>>>) -> anyhow::Resu
                 let used = stats.used_entries;
                 let free = stats.free_entries;
                 let total = stats.total_entries;
-                format!("nvs,host=doorsys used={used},free={free},total={total} {time}")
+                format!("nvs,host=doorsys-v2 used={used},free={free},total={total} {time}")
             }
         };
         log::info!("{}", nvs);
