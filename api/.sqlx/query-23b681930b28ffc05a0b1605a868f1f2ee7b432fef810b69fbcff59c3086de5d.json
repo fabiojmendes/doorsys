@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update staff set active = $1 where id = $2 returning *",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "customer_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "phone",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "pin",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "fob",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "created",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "23b681930b28ffc05a0b1605a868f1f2ee7b432fef810b69fbcff59c3086de5d"
+}
