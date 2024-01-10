@@ -6,7 +6,7 @@ use axum::{
     extract::{FromRef, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, post},
+    routing::{get, post, put},
     Json, Router,
 };
 use rumqttc::AsyncClient;
@@ -118,6 +118,7 @@ pub async fn serve(pool: PgPool, mqtt_client: AsyncClient) -> anyhow::Result<()>
                 .put(staff_handler::update),
         )
         .route("/staff/:id/pin", post(staff_handler::update_pin))
+        .route("/staff/:id/status", put(staff_handler::update_status))
         .route("/entry_logs", get(entry_handler::list))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())

@@ -68,6 +68,17 @@ impl StaffRepository {
         .await
     }
 
+    pub async fn update_status(&self, id: i64, active: bool) -> Result<Staff, sqlx::Error> {
+        sqlx::query_as!(
+            Staff,
+            r#"update staff set active = $1 where id = $2 returning *"#,
+            active,
+            id,
+        )
+        .fetch_one(&self.pool)
+        .await
+    }
+
     pub async fn fetch_all(&self, customer_id: i64) -> Result<Vec<Staff>, sqlx::Error> {
         sqlx::query_as!(
             Staff,

@@ -104,6 +104,38 @@ pub async fn update_pin(
     Ok(Json(staff))
 }
 
+pub async fn update_status(
+    State(staff_repo): State<StaffRepository>,
+    State(mqtt_client): State<AsyncClient>,
+    Path(id): Path<i64>,
+    Json(active): Json<bool>,
+) -> HttpResult<Json<Staff>> {
+    let staff = staff_repo.update_status(id, active).await?;
+    let pin_action = match active {
+        true => UserAction::Add(staff.pin),
+        false => UserAction::Del(staff.pin),
+    };
+
+    if let Ok(payload) = bincode::encode_to_vec(pin_action, mqtt::BINCODE_CONFIG) {
+        mqtt_client
+            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+            .await?;
+    }
+
+    if let Some(fob) = staff.fob {
+        let fob_action = match active {
+            true => UserAction::Add(fob),
+            false => UserAction::Del(fob),
+        };
+        if let Ok(payload) = bincode::encode_to_vec(fob_action, mqtt::BINCODE_CONFIG) {
+            mqtt_client
+                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+                .await?;
+        }
+    }
+    Ok(Json(staff))
+}
+
 pub async fn delete(
     State(staff_repo): State<StaffRepository>,
     Path(id): Path<i64>,
