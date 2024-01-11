@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 doorsys-protocol = { path = "../protocol/" }
+rumqttc = { version = "0.23", features = ["url"] }
 bincode = "2.0.0-rc.3"
-rumqttc = "0.22.0"
 chrono = "0.4.27"
