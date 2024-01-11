@@ -11,7 +11,6 @@ use doorsys_protocol::{Audit, CodeType};
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::hal::gpio::OutputPin;
 use esp_idf_svc::hal::prelude::Peripherals;
-use esp_idf_svc::mqtt::client::EspMqttClient;
 use esp_idf_svc::mqtt::client::QoS;
 use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs};
 use esp_idf_svc::sys::{
@@ -20,6 +19,7 @@ use esp_idf_svc::sys::{
     MALLOC_CAP_DEFAULT,
 };
 use esp_idf_svc::systime::EspSystemTime;
+use mqtt::MqttClient;
 use std::mem;
 use std::ptr;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -152,10 +152,7 @@ fn setup_reader(
     Ok(())
 }
 
-fn setup_audit_publiher(
-    mqtt_client: Arc<Mutex<EspMqttClient<'static>>>,
-    audit_rx: Receiver<Audit>,
-) {
+fn setup_audit_publiher(mqtt_client: Arc<Mutex<MqttClient>>, audit_rx: Receiver<Audit>) {
     thread::spawn(move || {
         let config = bincode::config::standard();
 
@@ -179,7 +176,7 @@ fn setup_audit_publiher(
     });
 }
 
-fn health_check(mqtt_client: Arc<Mutex<EspMqttClient<'static>>>) -> anyhow::Result<()> {
+fn health_check(mqtt_client: Arc<Mutex<MqttClient>>) -> anyhow::Result<()> {
     let systime = EspSystemTime {};
 
     let mqtt_client = mqtt_client.clone();
@@ -261,14 +258,7 @@ fn main() -> anyhow::Result<()> {
 
     network::setup_wireless(peripherals.modem, sysloop.clone(), nvs_part.clone())?;
 
-    let mqtt_result = loop {
-        if let Ok(mqtt_result) = mqtt::setup_mqtt(user_db.clone(), door_tx.clone()) {
-            break mqtt_result;
-        }
-        log::warn!("Unable to connect to mqtt, retrying in 60s");
-        thread::sleep(Duration::from_secs(60));
-    };
-    let mqtt_client = Arc::new(Mutex::new(mqtt_result));
+    let mqtt_client = mqtt::setup_mqtt(user_db.clone())?;
 
     setup_audit_publiher(mqtt_client.clone(), audit_rx);
 

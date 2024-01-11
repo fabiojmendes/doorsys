@@ -1,7 +1,10 @@
+use std::sync::{Arc, Mutex};
+use std::thread;
+
 use doorsys_protocol::UserAction;
-use esp_idf_svc::mqtt::client::{Details, Event, QoS};
-use esp_idf_svc::mqtt::client::{EspMqttClient, EspMqttMessage, MqttClientConfiguration};
-use std::sync::mpsc::Sender;
+use esp_idf_svc::mqtt::client::{ConnState, Details, Event, Message, MessageImpl, QoS};
+use esp_idf_svc::mqtt::client::{EspMqttClient, MqttClientConfiguration};
+use esp_idf_svc::sys::EspError;
 
 use crate::user::UserDB;
 
@@ -14,27 +17,45 @@ const BINCODE_CONFIG: bincode::config::Configuration = bincode::config::standard
 static mut SHARED_BUF: Vec<u8> = Vec::new();
 static mut SHARED_TOPIC: String = String::new();
 
-pub fn setup_mqtt(user_db: UserDB, door_tx: Sender<()>) -> anyhow::Result<EspMqttClient<'static>> {
+pub type MqttClient = EspMqttClient<'static, ConnState<MessageImpl, EspError>>;
+
+pub fn setup_mqtt(user_db: UserDB) -> anyhow::Result<Arc<Mutex<MqttClient>>> {
     let mqtt_config = MqttClientConfiguration {
         client_id: Some("doorsys-v2"),
         username: Some(MQTT_USER),
         password: Some(MQTT_PASS),
+        disable_clean_session: true,
         ..Default::default()
     };
 
-    let mut client = EspMqttClient::new(MQTT_URL, &mqtt_config, move |res| match res {
-        Ok(Event::Received(msg)) => route_message(msg, user_db.clone(), &door_tx),
-        Ok(event) => log::info!("mqtt event: {:?}", event),
-        Err(e) => log::warn!("from mqtt: {:?} {:?}", res, e),
-    })?;
+    let (client, mut conn) = EspMqttClient::new_with_conn(MQTT_URL, &mqtt_config)?;
+    let client = Arc::new(Mutex::new(client));
+    let client_clone = client.clone();
 
-    client.subscribe("doorsys/user", QoS::AtLeastOnce)?;
-    client.subscribe("doorsys/open", QoS::AtMostOnce)?;
+    thread::spawn(move || {
+        while let Some(res) = conn.next() {
+            match res {
+                Ok(Event::Received(msg)) => route_message(msg, &user_db),
+                Ok(Event::Connected(_)) => {
+                    log::info!("mqtt event: Connected");
+                    if let Err(e) = client
+                        .lock()
+                        .unwrap()
+                        .subscribe("doorsys/user", QoS::AtLeastOnce)
+                    {
+                        log::error!("error subscribing: {:?}", e);
+                    }
+                }
+                Ok(event) => log::info!("mqtt event: {:?}", event),
+                Err(e) => log::warn!("from mqtt: {:?} {:?}", res, e),
+            }
+        }
+    });
 
-    Ok(client)
+    Ok(client_clone)
 }
 
-fn route_message(msg: &EspMqttMessage, user_db: UserDB, door_tx: &Sender<()>) {
+fn route_message(msg: impl Message, user_db: &UserDB) {
     log::info!(
         "Message received {:?} {:?}, {} bytes",
         msg.topic(),
@@ -59,19 +80,11 @@ fn route_message(msg: &EspMqttMessage, user_db: UserDB, door_tx: &Sender<()>) {
     };
     match topic {
         "doorsys/user" => process_user_message(data, user_db),
-        "doorsys/open" => proccess_open_message(door_tx),
         _ => log::warn!("unknown topic {}", topic),
     };
 }
 
-fn proccess_open_message(door_tx: &Sender<()>) {
-    log::info!("Open door from mqtt");
-    if let Err(e) = door_tx.send(()) {
-        log::error!("error sending door message {}", e);
-    }
-}
-
-fn process_user_message(data: &[u8], user_db: UserDB) {
+fn process_user_message(data: &[u8], user_db: &UserDB) {
     match bincode::decode_from_slice(data, BINCODE_CONFIG) {
         Ok((UserAction::Add(code), _)) => {
             log::info!("Adding code {}", code);
