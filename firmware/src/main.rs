@@ -191,7 +191,7 @@ fn health_check(mqtt_client: Arc<Mutex<MqttClient>>) -> anyhow::Result<()> {
             format!("heap,host=doorsys-v2 free={free},total={total},minimum={minimum},largest_free={largest_free} {time}")
         };
         log::info!("{}", heap);
-        if let Err(e) = mqtt_client.lock().unwrap().enqueue(
+        if let Err(e) = mqtt_client.lock().unwrap().publish(
             "doorsys/status",
             QoS::AtMostOnce,
             false,
@@ -213,7 +213,7 @@ fn health_check(mqtt_client: Arc<Mutex<MqttClient>>) -> anyhow::Result<()> {
             }
         };
         log::info!("{}", nvs);
-        if let Err(e) = mqtt_client.lock().unwrap().enqueue(
+        if let Err(e) = mqtt_client.lock().unwrap().publish(
             "doorsys/status",
             QoS::AtMostOnce,
             false,
