@@ -41,10 +41,23 @@ async function resetPin() {
     staff.value = res.data
   }
 }
+
+async function updateStatus() {
+  const confirmed = confirm(
+    `${staff.value.active ? 'Deactivate' : 'Activate'} ${staff.value.name}?`
+  )
+  if (confirmed) {
+    const res = await api.put(`/staff/${staff.value.id}/status`, !staff.value.active)
+    staff.value = res.data
+  }
+}
 </script>
 
 <template>
   <BackButton />
+  <div v-if="!staff.active" class="alert alert-secondary mt-3" role="alert">
+    This staff member is inactive
+  </div>
   <div class="card mb-3 mt-3">
     <div class="card-body">
       <div class="card-title">
@@ -80,6 +93,12 @@ async function resetPin() {
         </div>
         <div class="d-inline-flex gap-2">
           <input type="submit" class="btn btn-primary" value="Save" />
+          <button v-if="staff.active" type="button" class="btn btn-danger" @click="updateStatus">
+            Deactivate
+          </button>
+          <button v-else type="button" class="btn btn-success" @click="updateStatus">
+            Activate
+          </button>
         </div>
         <div v-if="status.message" :class="status.class" class="mt-3 alert" role="alert">
           <p>{{ status.message }}</p>

@@ -94,14 +94,18 @@ async function addStaffMember() {
         <tr>
           <th>Name</th>
           <th>Phone</th>
-          <th class="text-end">Fob/Pin</th>
+          <th class="text-end">Status</th>
         </tr>
       </thead>
       <tbody>
         <tr @click="router.push(`/staff/${s.id}`)" v-for="s in staffList">
-          <td>{{ s.name }}</td>
+          <td>
+            <span v-if="s.active">{{ s.name }}</span>
+            <s v-else>{{ s.name }}</s>
+          </td>
           <td class="text-secondary">{{ s.phone }}</td>
           <td class="text-end">
+            <i v-if="!s.active" class="ms-2 bi bi-ban" title="Staff is inactive"></i>
             <i v-if="s.fob" class="ms-2 bi bi-tag" title="Staff has fob"></i>
             <i v-if="s.pin" class="ms-2 bi bi-123" title="Staff has pin"></i>
           </td>
