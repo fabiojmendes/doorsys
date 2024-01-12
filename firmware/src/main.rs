@@ -197,7 +197,7 @@ fn health_check(mqtt_client: Arc<Mutex<MqttClient>>) -> anyhow::Result<()> {
             false,
             heap.as_bytes(),
         ) {
-            log::warn!("mqtt enqueue error: {}", e);
+            log::warn!("mqtt publish error: {}", e);
         }
 
         let nvs = unsafe {
@@ -219,7 +219,7 @@ fn health_check(mqtt_client: Arc<Mutex<MqttClient>>) -> anyhow::Result<()> {
             false,
             nvs.as_bytes(),
         ) {
-            log::warn!("mqtt enqueue error: {}", e);
+            log::warn!("mqtt publish error: {}", e);
         }
 
         thread::sleep(Duration::from_secs(60));
