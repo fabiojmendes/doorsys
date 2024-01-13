@@ -161,7 +161,7 @@ fn setup_audit_publiher(mqtt_client: Arc<Mutex<MqttClient>>, audit_rx: Receiver<
                 Ok(buffer) => {
                     if let Err(e) = mqtt_client.lock().unwrap().enqueue(
                         "doorsys/audit",
-                        QoS::ExactlyOnce,
+                        QoS::AtLeastOnce,
                         false,
                         &buffer,
                     ) {

@@ -9,6 +9,7 @@ use esp_idf_svc::sys::EspError;
 use crate::user::UserDB;
 
 const MQTT_URL: &str = env!("MQTT_URL");
+const MQTT_CLIENT_ID: &str = env!("MQTT_CLIENT_ID");
 const MQTT_USER: &str = env!("MQTT_USER");
 const MQTT_PASS: &str = env!("MQTT_PASS");
 
@@ -21,7 +22,7 @@ pub type MqttClient = EspMqttClient<'static, ConnState<MessageImpl, EspError>>;
 
 pub fn setup_mqtt(user_db: UserDB) -> anyhow::Result<Arc<Mutex<MqttClient>>> {
     let mqtt_config = MqttClientConfiguration {
-        client_id: Some("doorsys-v2"),
+        client_id: Some(MQTT_CLIENT_ID),
         username: Some(MQTT_USER),
         password: Some(MQTT_PASS),
         disable_clean_session: true,
