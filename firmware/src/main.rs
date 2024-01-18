@@ -9,7 +9,7 @@ mod wiegand;
 
 use doorsys_protocol::{Audit, CodeType};
 use esp_idf_svc::eventloop::EspSystemEventLoop;
-use esp_idf_svc::hal::gpio::OutputPin;
+use esp_idf_svc::hal::gpio::{Output, OutputPin, PinDriver};
 use esp_idf_svc::hal::prelude::Peripherals;
 use esp_idf_svc::mqtt::client::QoS;
 use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs};
@@ -33,6 +33,7 @@ use crate::user::UserDB;
 use crate::wiegand::Reader;
 
 const MAX_PIN_LENGTH: usize = 8;
+const STAR_KEY: u8 = 0x0A;
 const HASH_KEY: u8 = 0x0B;
 const DOOR_OPEN_DELAY: Duration = Duration::from_secs(2);
 
@@ -72,6 +73,23 @@ fn setup_door(pin: impl OutputPin, door_rx: Receiver<()>) -> anyhow::Result<()> 
     Ok(())
 }
 
+fn keypad_feedback(
+    success: bool,
+    pin: &mut PinDriver<'_, impl OutputPin, Output>,
+) -> anyhow::Result<()> {
+    for _ in 0..6 {
+        if success {
+            pin.set_low()?;
+        } else {
+            pin.toggle()?;
+        }
+        thread::sleep(Duration::from_millis(100));
+    }
+    pin.set_high()?;
+    Ok(())
+}
+
+/// Converts a key press sequence into an integer
 fn keys_to_int(keys: &[u8]) -> i32 {
     keys.iter()
         .cloned()
@@ -84,7 +102,11 @@ fn setup_reader(
     door_tx: Sender<()>,
     user_db: UserDB,
     audit_tx: Sender<Audit>,
+    signal_pin: impl OutputPin,
 ) -> anyhow::Result<()> {
+    let mut signal_driver = PinDriver::output_od(signal_pin)?;
+    signal_driver.set_high()?;
+
     thread::spawn(move || {
         let mut reader = Reader::new(GPIO_D0, GPIO_D1);
         reader.start().unwrap();
@@ -97,44 +119,59 @@ fn setup_reader(
                 Ok(Packet::Key { key }) => {
                     if key == HASH_KEY {
                         let pin = keys_to_int(&keys);
-                        let contains = user_db.contains(pin);
-                        log::info!("Valid pin {}: {}", pin, contains);
-                        if contains {
+                        let success = user_db.contains(pin);
+                        log::info!("Valid pin {}: {}", pin, success);
+                        if success {
                             door_tx.send(()).unwrap();
                         }
                         let audit = Audit {
                             code: pin,
                             code_type: CodeType::Pin,
                             timestamp: SystemTime::now(),
-                            success: contains,
+                            success,
                         };
                         if let Err(e) = audit_tx.send(audit) {
                             log::error!("error sending audit record: {}", e);
                         }
                         keys.clear();
+                        if let Err(e) = keypad_feedback(success, &mut signal_driver) {
+                            log::warn!("error playing feedback: {}", e);
+                        }
+                    } else if key == STAR_KEY {
+                        log::info!("Cancel sequence");
+                        keys.clear();
+                        if let Err(e) = keypad_feedback(false, &mut signal_driver) {
+                            log::warn!("error playing feedback: {}", e);
+                        }
                     } else if keys.len() == MAX_PIN_LENGTH {
                         log::warn!("pin sequence is too big {:?}", keys);
                         keys.clear();
+                        if let Err(e) = keypad_feedback(false, &mut signal_driver) {
+                            log::warn!("error playing feedback: {}", e);
+                        }
                     } else {
                         keys.push(key);
                     }
                 }
                 Ok(Packet::Card { rfid }) => {
-                    let contains = user_db.contains(rfid);
-                    log::info!("Valid rfid {}: {}", rfid, contains);
-                    if contains {
+                    let success = user_db.contains(rfid);
+                    log::info!("Valid rfid {}: {}", rfid, success);
+                    if success {
                         door_tx.send(()).unwrap();
                     }
                     let audit = Audit {
                         code: rfid,
                         code_type: CodeType::Fob,
                         timestamp: SystemTime::now(),
-                        success: contains,
+                        success,
                     };
                     if let Err(e) = audit_tx.send(audit) {
                         log::error!("error sending audit record: {}", e);
                     }
                     keys.clear();
+                    if let Err(e) = keypad_feedback(success, &mut signal_driver) {
+                        log::warn!("error playing feedback: {}", e);
+                    }
                 }
                 Ok(Packet::Unknown { bits, data }) => {
                     log::warn!("pattern not recognized bits: {}, data: {:02X?}", bits, data);
@@ -143,6 +180,9 @@ fn setup_reader(
                     if !keys.is_empty() {
                         log::warn!("incomplete pin sequence {:?}", keys);
                         keys.clear();
+                        if let Err(e) = keypad_feedback(false, &mut signal_driver) {
+                            log::warn!("error playing feedback: {}", e);
+                        }
                     }
                 }
             }
@@ -254,7 +294,8 @@ fn main() -> anyhow::Result<()> {
     setup_button(door_tx.clone());
 
     let (audit_tx, audit_rx) = mpsc::channel();
-    setup_reader(door_tx.clone(), user_db.clone(), audit_tx)?;
+    let signal_pin = peripherals.pins.gpio7;
+    setup_reader(door_tx.clone(), user_db.clone(), audit_tx, signal_pin)?;
 
     network::setup_wireless(peripherals.modem, sysloop.clone(), nvs_part.clone())?;
 
