@@ -95,10 +95,17 @@ impl StaffRepository {
             .await
     }
 
-    pub async fn delete(&self, id: i64) -> Result<(), sqlx::Error> {
-        sqlx::query!(r#"delete from staff where id = $1"#, id)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
+    pub async fn fetch_all_codes(&self) -> Result<Vec<Option<i32>>, sqlx::Error> {
+        sqlx::query_scalar!(
+            r#"
+            with all_codes(code, active) as (
+                select pin, active from staff 
+                union 
+                select fob, active from staff
+            ) select code from all_codes where code is not null and active is true order by code
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await
     }
 }

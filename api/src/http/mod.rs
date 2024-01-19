@@ -113,13 +113,12 @@ pub async fn serve(pool: PgPool, mqtt_client: AsyncClient) -> anyhow::Result<()>
         .route("/staff", post(staff_handler::create))
         .route(
             "/staff/:id",
-            get(staff_handler::get)
-                .delete(staff_handler::delete)
-                .put(staff_handler::update),
+            get(staff_handler::get).put(staff_handler::update),
         )
         .route("/staff/:id/pin", post(staff_handler::update_pin))
         .route("/staff/:id/status", put(staff_handler::update_status))
         .route("/entry_logs", get(entry_handler::list))
+        .route("/admin/bulk", post(staff_handler::bulk_load_codes))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(app_state);

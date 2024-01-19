@@ -25,19 +25,17 @@ pub async fn create(
     let staff = staff_repo.create(&new_staff, pin).await?;
 
     let user_add = UserAction::Add(pin);
-    if let Ok(payload) = bincode::encode_to_vec(user_add, mqtt::BINCODE_CONFIG) {
-        mqtt_client
-            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-            .await?;
-    }
+    let payload = bincode::encode_to_vec(user_add, mqtt::BINCODE_CONFIG)?;
+    mqtt_client
+        .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+        .await?;
 
     if let Some(fob) = staff.fob {
         let user_add = UserAction::Add(fob);
-        if let Ok(payload) = bincode::encode_to_vec(user_add, mqtt::BINCODE_CONFIG) {
-            mqtt_client
-                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-                .await?;
-        }
+        let payload = bincode::encode_to_vec(user_add, mqtt::BINCODE_CONFIG)?;
+        mqtt_client
+            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+            .await?;
     }
     Ok(Json(staff))
 }
@@ -73,11 +71,10 @@ pub async fn update(
         (Some(fob), None) => Some(UserAction::Del(fob)),
         _ => None,
     } {
-        if let Ok(payload) = bincode::encode_to_vec(action, mqtt::BINCODE_CONFIG) {
-            mqtt_client
-                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-                .await?;
-        }
+        let payload = bincode::encode_to_vec(action, mqtt::BINCODE_CONFIG)?;
+        mqtt_client
+            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+            .await?;
     }
     Ok(Json(staff))
 }
@@ -96,11 +93,10 @@ pub async fn update_pin(
         old: old_pin,
         new: new_pin,
     };
-    if let Ok(payload) = bincode::encode_to_vec(replace_pin, mqtt::BINCODE_CONFIG) {
-        mqtt_client
-            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-            .await?;
-    }
+    let payload = bincode::encode_to_vec(replace_pin, mqtt::BINCODE_CONFIG)?;
+    mqtt_client
+        .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+        .await?;
     Ok(Json(staff))
 }
 
@@ -116,30 +112,34 @@ pub async fn update_status(
         false => UserAction::Del(staff.pin),
     };
 
-    if let Ok(payload) = bincode::encode_to_vec(pin_action, mqtt::BINCODE_CONFIG) {
-        mqtt_client
-            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-            .await?;
-    }
+    let payload = bincode::encode_to_vec(pin_action, mqtt::BINCODE_CONFIG)?;
+    mqtt_client
+        .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+        .await?;
 
     if let Some(fob) = staff.fob {
         let fob_action = match active {
             true => UserAction::Add(fob),
             false => UserAction::Del(fob),
         };
-        if let Ok(payload) = bincode::encode_to_vec(fob_action, mqtt::BINCODE_CONFIG) {
-            mqtt_client
-                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-                .await?;
-        }
+        let payload = bincode::encode_to_vec(fob_action, mqtt::BINCODE_CONFIG)?;
+        mqtt_client
+            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+            .await?;
     }
     Ok(Json(staff))
 }
 
-pub async fn delete(
+pub async fn bulk_load_codes(
     State(staff_repo): State<StaffRepository>,
-    Path(id): Path<i64>,
+    State(mqtt_client): State<AsyncClient>,
 ) -> HttpResult<()> {
-    staff_repo.delete(id).await?;
+    let codes = staff_repo.fetch_all_codes().await?;
+    tracing::info!("Executing bulk load of {} codes", codes.len());
+    let bulk_action = UserAction::Bulk(codes.into_iter().flatten().collect());
+    let payload = bincode::encode_to_vec(bulk_action, mqtt::BINCODE_CONFIG)?;
+    mqtt_client
+        .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+        .await?;
     Ok(())
 }
