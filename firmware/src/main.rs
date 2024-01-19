@@ -216,10 +216,12 @@ fn setup_audit_publiher(mqtt_client: Arc<Mutex<MqttClient>>, audit_rx: Receiver<
     });
 }
 
-fn health_check(mqtt_client: Arc<Mutex<MqttClient>>) -> anyhow::Result<()> {
+fn health_check(net_id: &str, mqtt_client: Arc<Mutex<MqttClient>>) -> anyhow::Result<()> {
     let systime = EspSystemTime {};
 
     let mqtt_client = mqtt_client.clone();
+
+    let net_id = net_id.to_owned();
 
     thread::spawn(move || loop {
         let time = systime.now().as_nanos();
@@ -228,7 +230,7 @@ fn health_check(mqtt_client: Arc<Mutex<MqttClient>>) -> anyhow::Result<()> {
             let free = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
             let minimum = heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT);
             let largest_free = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
-            format!("heap,host=doorsys-v2 free={free},total={total},minimum={minimum},largest_free={largest_free} {time}")
+            format!("heap,host={net_id} free={free},total={total},minimum={minimum},largest_free={largest_free} {time}")
         };
         log::info!("{}", heap);
         if let Err(e) = mqtt_client.lock().unwrap().publish(
@@ -249,7 +251,7 @@ fn health_check(mqtt_client: Arc<Mutex<MqttClient>>) -> anyhow::Result<()> {
                 let used = stats.used_entries;
                 let free = stats.free_entries;
                 let total = stats.total_entries;
-                format!("nvs,host=doorsys-v2 used={used},free={free},total={total} {time}")
+                format!("nvs,host={net_id} used={used},free={free},total={total} {time}")
             }
         };
         log::info!("{}", nvs);
@@ -297,13 +299,13 @@ fn main() -> anyhow::Result<()> {
     let signal_pin = peripherals.pins.gpio7;
     setup_reader(door_tx.clone(), user_db.clone(), audit_tx, signal_pin)?;
 
-    network::setup_wireless(peripherals.modem, sysloop.clone(), nvs_part.clone())?;
+    let net_id = network::setup_wireless(peripherals.modem, sysloop.clone(), nvs_part.clone())?;
 
-    let mqtt_client = mqtt::setup_mqtt(user_db.clone())?;
+    let mqtt_client = mqtt::setup_mqtt(&net_id, user_db.clone())?;
 
     setup_audit_publiher(mqtt_client.clone(), audit_rx);
 
-    health_check(mqtt_client.clone())?;
+    health_check(&net_id, mqtt_client.clone())?;
 
     log::info!("Application fully functional");
 

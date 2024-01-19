@@ -2,14 +2,14 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use doorsys_protocol::UserAction;
-use esp_idf_svc::mqtt::client::{ConnState, Details, Event, Message, MessageImpl, QoS};
-use esp_idf_svc::mqtt::client::{EspMqttClient, MqttClientConfiguration};
+use esp_idf_svc::mqtt::client::{
+    ConnState, Details, EspMqttClient, Event, Message, MessageImpl, MqttClientConfiguration, QoS,
+};
 use esp_idf_svc::sys::EspError;
 
 use crate::user::UserDB;
 
 const MQTT_URL: &str = env!("MQTT_URL");
-const MQTT_CLIENT_ID: &str = env!("MQTT_CLIENT_ID");
 const MQTT_USER: &str = env!("MQTT_USER");
 const MQTT_PASS: &str = env!("MQTT_PASS");
 
@@ -20,9 +20,9 @@ static mut SHARED_TOPIC: String = String::new();
 
 pub type MqttClient = EspMqttClient<'static, ConnState<MessageImpl, EspError>>;
 
-pub fn setup_mqtt(user_db: UserDB) -> anyhow::Result<Arc<Mutex<MqttClient>>> {
+pub fn setup_mqtt(net_id: &str, user_db: UserDB) -> anyhow::Result<Arc<Mutex<MqttClient>>> {
     let mqtt_config = MqttClientConfiguration {
-        client_id: Some(MQTT_CLIENT_ID),
+        client_id: Some(net_id),
         username: Some(MQTT_USER),
         password: Some(MQTT_PASS),
         disable_clean_session: true,
