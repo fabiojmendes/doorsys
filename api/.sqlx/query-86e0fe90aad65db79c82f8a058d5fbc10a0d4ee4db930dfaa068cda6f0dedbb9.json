@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            with all_codes(code, active) as (\n                select pin, active from staff \n                union \n                select fob, active from staff\n            ) select code from all_codes where code is not null and active is true order by code\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "86e0fe90aad65db79c82f8a058d5fbc10a0d4ee4db930dfaa068cda6f0dedbb9"
+}
