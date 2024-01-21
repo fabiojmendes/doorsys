@@ -30,7 +30,7 @@ pub fn setup_wireless(
 
     let wifi_configuration: Configuration = Configuration::Client(ClientConfiguration {
         ssid: SSID.into(),
-        auth_method: AuthMethod::WPA3Personal,
+        auth_method: AuthMethod::WPA2Personal,
         password: PASSWORD.into(),
         ..Default::default()
     });
