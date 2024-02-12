@@ -13,7 +13,7 @@ use rumqttc::AsyncClient;
 use serde_json::json;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::trace::TraceLayer;
 
 pub mod customer_handler;
 pub mod entry_handler;
@@ -120,7 +120,6 @@ pub async fn serve(pool: PgPool, mqtt_client: AsyncClient) -> anyhow::Result<()>
         .route("/entry_logs", get(entry_handler::list))
         .route("/admin/bulk", post(staff_handler::bulk_load_codes))
         .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive())
         .with_state(app_state);
 
     let listerner = TcpListener::bind("0.0.0.0:3000").await?;

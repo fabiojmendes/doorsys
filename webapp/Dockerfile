@@ -1,7 +1,5 @@
 # build stage
 FROM node:lts-alpine as build-stage
-ARG API_BASE_URL
-ENV VITE_API_BASE_URL=$API_BASE_URL
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
