@@ -1,0 +1,80 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select \n                e.id, \n                s.id as \"staff_id?\", \n                s.name as \"staff_name?\", \n                c.id as \"customer_id?\",\n                c.name as \"customer_name?\",\n                d.id as \"device_id?\",\n                d.name as \"device_name?\",\n                e.code,\n                e.code_type,\n                e.success,\n                e.event_date\n            from entry_log e\n            left join staff s on s.id = e.staff_id\n            left join customer c on s.customer_id = c.id\n            left join device d on d.id = e.device_id\n            order by e.event_date desc\n            limit 50\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "staff_id?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "staff_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "customer_id?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "customer_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "device_id?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "device_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "code",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "code_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "success",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "event_date",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3fc628ea4e92d767f71bd6caea187d774e8f61d1f06fa6bbe8bdb0ea94224f59"
+}

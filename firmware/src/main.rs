@@ -192,7 +192,12 @@ fn setup_reader(
     Ok(())
 }
 
-fn setup_audit_publiher(mqtt_client: Arc<Mutex<MqttClient>>, audit_rx: Receiver<Audit>) {
+fn setup_audit_publiher(
+    device_id: &str,
+    mqtt_client: Arc<Mutex<MqttClient>>,
+    audit_rx: Receiver<Audit>,
+) {
+    let topic = format!("doorsys/audit/{device_id}");
     thread::spawn(move || {
         let config = bincode::config::standard();
 
@@ -200,7 +205,7 @@ fn setup_audit_publiher(mqtt_client: Arc<Mutex<MqttClient>>, audit_rx: Receiver<
             match bincode::encode_to_vec(audit, config) {
                 Ok(buffer) => {
                     if let Err(e) = mqtt_client.lock().unwrap().enqueue(
-                        "doorsys/audit",
+                        &topic,
                         QoS::AtLeastOnce,
                         false,
                         &buffer,
@@ -303,7 +308,7 @@ fn main() -> anyhow::Result<()> {
 
     let mqtt_client = mqtt::setup_mqtt(&net_id, user_db.clone())?;
 
-    setup_audit_publiher(mqtt_client.clone(), audit_rx);
+    setup_audit_publiher(&net_id, mqtt_client.clone(), audit_rx);
 
     health_check(&net_id, mqtt_client.clone())?;
 

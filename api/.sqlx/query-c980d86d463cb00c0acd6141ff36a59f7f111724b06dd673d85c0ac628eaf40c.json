@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            with temp(code) as (values($1::int))\n            insert into entry_log (staff_id, code, code_type, success, event_date) \n                select s.id, t.code, $2, $3, $4\n                from temp t\n                left join staff s on s.pin = t.code or s.fob = t.code\n            returning *\n            ",
+  "query": "\n            with temp(code, mac_addr) as (values($1::int, $3::varchar))\n            insert into entry_log (staff_id, code, code_type, device_id, success, event_date) \n                select s.id, t.code, $2, d.id, $4, $5\n                from temp t\n                left join staff s on s.pin = t.code or s.fob = t.code\n                left join device d on d.mac_addr = t.mac_addr\n            returning *\n            ",
   "describe": {
     "columns": [
       {
@@ -37,11 +37,17 @@
         "ordinal": 6,
         "name": "created",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "device_id",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
       "Left": [
         "Int4",
+        "Varchar",
         "Varchar",
         "Bool",
         "Timestamptz"
@@ -54,8 +60,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "5f9cbb12f880ef0b1e26955cf8972bc029c778e07db99299c99cb465f8e2e261"
+  "hash": "c980d86d463cb00c0acd6141ff36a59f7f111724b06dd673d85c0ac628eaf40c"
 }

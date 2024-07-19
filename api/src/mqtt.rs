@@ -32,11 +32,23 @@ pub async fn start(pool: PgPool, mqtt_url: &str) -> anyhow::Result<AsyncClient> 
                     if let Ok((audit, len)) =
                         bincode::decode_from_slice::<Audit, _>(&p.payload, BINCODE_CONFIG)
                     {
-                        tracing::info!("Audit({}): {:?}", len, audit);
+                        let mac_addr = p.topic.split('/').nth(2);
+                        tracing::info!(
+                            "Audit({}) [{:?}]: {:?}",
+                            len,
+                            mac_addr.unwrap_or(""),
+                            audit
+                        );
                         let code_type = audit.code_type.to_string();
                         let event_date: DateTime<Utc> = audit.timestamp.into();
                         match entry_repo
-                            .create_with_code(audit.code, &code_type, audit.success, &event_date)
+                            .create_with_code(
+                                audit.code,
+                                &code_type,
+                                mac_addr,
+                                audit.success,
+                                &event_date,
+                            )
                             .await
                         {
                             Ok(log) => {
@@ -56,7 +68,7 @@ pub async fn start(pool: PgPool, mqtt_url: &str) -> anyhow::Result<AsyncClient> 
                     }
                 }
                 Ok(Event::Incoming(Packet::ConnAck(_))) => {
-                    if let Err(e) = client.subscribe("doorsys/audit", QoS::AtLeastOnce).await {
+                    if let Err(e) = client.subscribe("doorsys/audit/+", QoS::AtLeastOnce).await {
                         tracing::error!("Error subscribing to topic {}", e);
                     }
                 }

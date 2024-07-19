@@ -25,6 +25,7 @@ onMounted(async () => {
   <table class="table table-striped">
     <thead>
       <tr>
+        <th>Door</th>
         <th>Customer</th>
         <th>Staff</th>
         <th>Date</th>
@@ -33,6 +34,7 @@ onMounted(async () => {
     </thead>
     <tbody>
       <tr v-for="e in entries">
+        <td>{{ e.deviceName }}</td>
         <td>
           <RouterLink v-if="e.customerId" :to="`/customers/${e.customerId}`">
             {{ e.customerName }}

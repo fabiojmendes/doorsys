@@ -28,13 +28,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     let payload = bincode::encode_to_vec(audit, CONFIG).unwrap();
     client
-        .publish("doorsys/audit", QoS::AtLeastOnce, false, &*payload)
+        .publish("doorsys/audit/aabbcc", QoS::AtLeastOnce, false, &*payload)
         .unwrap();
     client
-        .publish("doorsys/audit", QoS::AtLeastOnce, false, &*payload)
+        .publish("doorsys/audit/aabbcc", QoS::AtLeastOnce, false, &*payload)
         .unwrap();
     client
-        .publish("doorsys/audit", QoS::AtLeastOnce, false, &*payload)
+        .publish("doorsys/audit/aabbcc", QoS::AtLeastOnce, false, &*payload)
         .unwrap();
     // Iterate to poll the eventloop for connection progress
     for (i, notification) in connection.iter().enumerate() {
