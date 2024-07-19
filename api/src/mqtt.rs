@@ -71,6 +71,9 @@ pub async fn start(pool: PgPool, mqtt_url: &str) -> anyhow::Result<AsyncClient> 
                     if let Err(e) = client.subscribe("doorsys/audit/+", QoS::AtLeastOnce).await {
                         tracing::error!("Error subscribing to topic {}", e);
                     }
+                    if let Err(e) = client.subscribe("doorsys/audit", QoS::AtLeastOnce).await {
+                        tracing::error!("Error subscribing to topic {}", e);
+                    }
                 }
                 Err(rumqttc::ConnectionError::Io(e)) => {
                     tracing::error!("Connection refused {:?}", e);
