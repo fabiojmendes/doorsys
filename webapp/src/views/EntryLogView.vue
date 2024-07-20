@@ -8,9 +8,22 @@ const LABELS = {
 
 const api = inject('api')
 const entries = ref([])
+const filter = ref({})
 
 onMounted(async () => {
-  const res = await api.get('/entry_logs')
+  let date = new Date()
+  const endDate = date.toLocaleDateString()
+  date.setDate(date.getDate() - 1)
+  const startDate = date.toLocaleDateString()
+  filter.value = { startDate, endDate }
+  load()
+})
+
+async function load() {
+  const startDate = new Date(filter.value.startDate + ' 00:00:00')
+  const endDate = new Date(filter.value.endDate + ' 23:59:59.999')
+
+  const res = await api.get('/entry_logs', { params: { start_date: startDate, end_date: endDate } })
   entries.value = res.data.map((item) => {
     return {
       ...item,
@@ -18,10 +31,29 @@ onMounted(async () => {
       codeTypeLabel: LABELS[item.codeType]
     }
   })
-})
+}
 </script>
 
 <template>
+  <div class="border rounded p-3 mt-3">
+    <form @submit.prevent="load">
+      <div class="row g-3 mb-3">
+        <div class="col input-group input-group-sm">
+          <span class="input-group-text">Start</span>
+          <input v-model="filter.startDate" type="date" class="form-control" />
+        </div>
+        <div class="col input-group input-group-sm">
+          <span class="input-group-text">End</span>
+          <input v-model="filter.endDate" type="date" class="form-control" />
+        </div>
+      </div>
+
+      <div class="text-end">
+        <input type="submit" class="btn btn-primary" value="Filter" />
+      </div>
+    </form>
+  </div>
+
   <table class="table table-striped">
     <thead>
       <tr>

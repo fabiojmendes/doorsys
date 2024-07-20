@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use sqlx::PgPool;
@@ -66,7 +68,10 @@ impl EntryLogRepository {
         .await
     }
 
-    pub async fn fetch_all(&self) -> Result<Vec<EntryLogDisplay>, sqlx::Error> {
+    pub async fn fetch_all(
+        &self,
+        date_range: Range<DateTime<Utc>>,
+    ) -> Result<Vec<EntryLogDisplay>, sqlx::Error> {
         sqlx::query_as!(
             EntryLogDisplay,
             r#"
@@ -86,9 +91,12 @@ impl EntryLogRepository {
             left join staff s on s.id = e.staff_id
             left join customer c on s.customer_id = c.id
             left join device d on d.id = e.device_id
+            where e.event_date between $1 and $2
             order by e.event_date desc
-            limit 50
+            limit 100
             "#,
+            date_range.start,
+            date_range.end,
         )
         .fetch_all(&self.pool)
         .await
