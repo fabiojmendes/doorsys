@@ -8,16 +8,12 @@ const LABELS = {
 
 const api = inject('api')
 const entries = ref([])
-const filter = ref({})
-
-onMounted(async () => {
-  let date = new Date()
-  const endDate = date.toLocaleDateString()
-  date.setDate(date.getDate() - 1)
-  const startDate = date.toLocaleDateString()
-  filter.value = { startDate, endDate }
-  load()
+const filter = ref({
+  startDate: new Date().toLocaleDateString(),
+  endDate: new Date().toLocaleDateString()
 })
+
+onMounted(load)
 
 async function load() {
   const startDate = new Date(filter.value.startDate + ' 00:00:00')
@@ -57,7 +53,7 @@ async function load() {
   <table class="table table-striped">
     <thead>
       <tr>
-        <th>Door</th>
+        <!-- <th>Door</th> -->
         <th>Customer</th>
         <th>Staff</th>
         <th>Date</th>
@@ -66,7 +62,7 @@ async function load() {
     </thead>
     <tbody>
       <tr v-for="e in entries">
-        <td>{{ e.deviceName }}</td>
+        <!-- <td>{{ e.deviceName }}</td> -->
         <td>
           <RouterLink v-if="e.customerId" :to="`/customers/${e.customerId}`">
             {{ e.customerName }}
