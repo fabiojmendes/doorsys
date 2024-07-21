@@ -1,5 +1,5 @@
 <script setup>
-import { inject, onMounted, ref } from 'vue'
+import { inject, computed, onMounted, ref } from 'vue'
 
 const LABELS = {
   pin: '123',
@@ -8,6 +8,16 @@ const LABELS = {
 
 const api = inject('api')
 const entries = ref([])
+const entryMap = computed(() => {
+  return entries.value.reduce((acc, e) => {
+    const date = e.eventDate.toLocaleDateString()
+    if (!acc[date]) {
+      acc[date] = []
+    }
+    acc[date].push(e)
+    return acc
+  }, {})
+})
 
 const customers = ref([])
 const filter = ref({
@@ -81,13 +91,16 @@ async function load() {
         <!-- <th>Door</th> -->
         <th>Customer</th>
         <th>Staff</th>
-        <th>Date</th>
+        <th>Time</th>
         <th class="text-center">Attributes</th>
       </tr>
     </thead>
     <tbody>
-      <template v-for="e in entries" :key="e.id">
-        <tr>
+      <template v-for="(list, date) in entryMap" :key="date">
+        <tr class="table-dark text-center">
+          <td colspan="4">{{ date }}</td>
+        </tr>
+        <tr v-for="e in list">
           <!-- <td>{{ e.deviceName }}</td> -->
           <td>
             <RouterLink v-if="e.customerId" :to="`/customers/${e.customerId}`">
@@ -99,7 +112,15 @@ async function load() {
             <RouterLink v-if="e.staffId" :to="`/staff/${e.staffId}`">{{ e.staffName }}</RouterLink>
             <span v-else>{{ e.code }}</span>
           </td>
-          <td>{{ e.eventDate.toLocaleString() }}</td>
+          <td :title="e.eventDate.toLocaleString([], { hour12: false })">
+            {{
+              e.eventDate.toLocaleTimeString([], {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+            }}
+          </td>
           <td class="text-center">
             <i :class="`bi bi-${e.codeTypeLabel}`" :title="`Entry using ${e.codeType}`"></i>
             <i v-if="e.success" title="Successful entry" class="ms-1 bi bi-check-square"></i>
