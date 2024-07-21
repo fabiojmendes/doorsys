@@ -113,4 +113,5 @@ async function load() {
       </template>
     </tbody>
   </table>
+  <div v-if="entries.length === 0" class="text-center">No Results found</div>
 </template>
