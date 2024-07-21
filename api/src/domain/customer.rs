@@ -31,7 +31,7 @@ impl CustomerRepository {
     }
 
     pub async fn fetch_all(&self) -> Result<Vec<Customer>, sqlx::Error> {
-        sqlx::query_as!(Customer, r#"select * from customer"#)
+        sqlx::query_as!(Customer, r#"select * from customer order by name"#)
             .fetch_all(&self.pool)
             .await
     }

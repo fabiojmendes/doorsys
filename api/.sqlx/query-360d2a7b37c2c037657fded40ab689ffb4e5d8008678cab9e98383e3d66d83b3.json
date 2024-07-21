@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select * from customer",
+  "query": "select * from customer order by name",
   "describe": {
     "columns": [
       {
@@ -34,5 +34,5 @@
       true
     ]
   },
-  "hash": "937b6414cbcc7cd01e1fde06386bbfbb36914ba86185a2df362ce3c18824f842"
+  "hash": "360d2a7b37c2c037657fded40ab689ffb4e5d8008678cab9e98383e3d66d83b3"
 }
