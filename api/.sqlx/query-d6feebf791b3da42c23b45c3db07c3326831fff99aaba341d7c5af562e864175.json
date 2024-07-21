@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            select \n                e.id, \n                s.id as \"staff_id?\", \n                s.name as \"staff_name?\", \n                c.id as \"customer_id?\",\n                c.name as \"customer_name?\",\n                d.id as \"device_id?\",\n                d.name as \"device_name?\",\n                e.code,\n                e.code_type,\n                e.success,\n                e.event_date\n            from entry_log e\n            left join staff s on s.id = e.staff_id\n            left join customer c on s.customer_id = c.id\n            left join device d on d.id = e.device_id\n            where e.event_date between $1 and $2\n            order by e.event_date desc\n            limit 100\n            ",
+  "query": "\n            select \n                e.id, \n                s.id as \"staff_id?\", \n                s.name as \"staff_name?\", \n                c.id as \"customer_id?\",\n                c.name as \"customer_name?\",\n                d.id as \"device_id?\",\n                d.name as \"device_name?\",\n                e.code,\n                e.code_type,\n                e.success,\n                e.event_date\n            from entry_log e\n            left join staff s on s.id = e.staff_id\n            left join customer c on s.customer_id = c.id\n            left join device d on d.id = e.device_id\n            where e.event_date between $1 and $2\n            and (c.id = $3 or $3 is null)\n            order by e.event_date desc\n            limit 100\n            ",
   "describe": {
     "columns": [
       {
@@ -62,7 +62,8 @@
     "parameters": {
       "Left": [
         "Timestamptz",
-        "Timestamptz"
+        "Timestamptz",
+        "Int8"
       ]
     },
     "nullable": [
@@ -79,5 +80,5 @@
       false
     ]
   },
-  "hash": "99c22381a8f45f9339ed45a4832aea03e6675aecab4d81adca205ce7df0c7162"
+  "hash": "d6feebf791b3da42c23b45c3db07c3326831fff99aaba341d7c5af562e864175"
 }

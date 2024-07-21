@@ -11,6 +11,7 @@ use serde::Deserialize;
 pub struct Filter {
     start_date: DateTime<Utc>,
     end_date: DateTime<Utc>,
+    customer_id: Option<i64>,
 }
 
 pub async fn list(
@@ -19,6 +20,8 @@ pub async fn list(
 ) -> HttpResult<Json<Vec<EntryLogDisplay>>> {
     let date_range = filter.start_date..filter.end_date;
     tracing::info!("Getting entry_logs for {:?}", date_range);
-    let entry_list = entry_log_repo.fetch_all(date_range).await?;
+    let entry_list = entry_log_repo
+        .fetch_all(date_range, filter.customer_id)
+        .await?;
     Ok(Json(entry_list))
 }

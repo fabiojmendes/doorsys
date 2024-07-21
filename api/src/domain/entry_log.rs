@@ -71,6 +71,7 @@ impl EntryLogRepository {
     pub async fn fetch_all(
         &self,
         date_range: Range<DateTime<Utc>>,
+        customer_id: Option<i64>,
     ) -> Result<Vec<EntryLogDisplay>, sqlx::Error> {
         sqlx::query_as!(
             EntryLogDisplay,
@@ -92,11 +93,13 @@ impl EntryLogRepository {
             left join customer c on s.customer_id = c.id
             left join device d on d.id = e.device_id
             where e.event_date between $1 and $2
+            and (c.id = $3 or $3 is null)
             order by e.event_date desc
             limit 100
             "#,
             date_range.start,
             date_range.end,
+            customer_id,
         )
         .fetch_all(&self.pool)
         .await
