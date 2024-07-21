@@ -21,8 +21,8 @@ const entryMap = computed(() => {
 
 const customers = ref([])
 const filter = ref({
-  startDate: new Date().toLocaleDateString(),
-  endDate: new Date().toLocaleDateString(),
+  startDate: new Date().toLocaleDateString('en-CA'),
+  endDate: new Date().toLocaleDateString('en-CA'),
   customerId: null
 })
 
@@ -60,11 +60,11 @@ async function load() {
       <div class="row g-3 mb-3">
         <div class="col input-group input-group-sm">
           <span class="input-group-text">Start</span>
-          <input v-model="filter.startDate" type="date" class="form-control" />
+          <input v-model.lazy="filter.startDate" type="date" class="form-control" />
         </div>
         <div class="col input-group input-group-sm">
           <span class="input-group-text">End</span>
-          <input v-model="filter.endDate" type="date" class="form-control" />
+          <input v-model.lazy="filter.endDate" type="date" class="form-control" />
         </div>
       </div>
       <div class="row g-3 mb-3">

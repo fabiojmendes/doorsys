@@ -95,7 +95,6 @@ impl EntryLogRepository {
             where e.event_date between $1 and $2
             and (c.id = $3 or $3 is null)
             order by e.event_date desc
-            limit 100
             "#,
             date_range.start,
             date_range.end,
