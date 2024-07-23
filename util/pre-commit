@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -eu
+
+FILES=$(git diff --staged --name-only | grep '^api' || true)
+if [ -z "$FILES" ]; then
+  exit 0
+fi
+
+(cd api && cargo sqlx prepare)
