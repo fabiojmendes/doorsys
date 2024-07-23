@@ -28,34 +28,42 @@ pub async fn start(pool: PgPool, mqtt_url: &str) -> anyhow::Result<AsyncClient> 
                         p.qos,
                         p.payload.len()
                     );
-                    if let Ok((audit, len)) =
-                        bincode::decode_from_slice::<Audit, _>(&p.payload, BINCODE_CONFIG)
-                    {
-                        let net_id = p.topic.split('/').nth(2);
-                        tracing::info!("Audit({}) [{:?}]: {:?}", len, net_id.unwrap_or(""), audit);
-                        match entry_repo
-                            .create_with_code(
-                                audit.code,
-                                &audit.code_type.to_string(),
-                                net_id,
-                                audit.success,
-                                &audit.timestamp.into(),
-                            )
-                            .await
-                        {
-                            Ok(log) => {
-                                tracing::info!("Log created {:?}", log);
-                            }
-                            Err(sqlx::Error::Database(e)) => {
-                                if let Some(c) = e.constraint() {
-                                    tracing::warn!("Duplicated entry log, skpping... {}", c);
-                                } else {
-                                    tracing::error!("Database error creating entry log {}", e);
+                    match bincode::decode_from_slice::<Audit, _>(&p.payload, BINCODE_CONFIG) {
+                        Ok((audit, len)) => {
+                            let net_id = p.topic.split('/').nth(2);
+                            tracing::info!(
+                                "Audit({}) [{:?}]: {:?}",
+                                len,
+                                net_id.unwrap_or(""),
+                                audit
+                            );
+                            match entry_repo
+                                .create_with_code(
+                                    audit.code,
+                                    &audit.code_type.to_string(),
+                                    net_id,
+                                    audit.success,
+                                    &audit.timestamp.into(),
+                                )
+                                .await
+                            {
+                                Ok(log) => {
+                                    tracing::info!("Log created {:?}", log);
+                                }
+                                Err(sqlx::Error::Database(e)) => {
+                                    if let Some(c) = e.constraint() {
+                                        tracing::warn!("Duplicated entry log, skpping... {}", c);
+                                    } else {
+                                        tracing::error!("Database error creating entry log {}", e);
+                                    }
+                                }
+                                Err(e) => {
+                                    tracing::error!("Error creating entry log {}", e);
                                 }
                             }
-                            Err(e) => {
-                                tracing::error!("Error creating entry log {}", e);
-                            }
+                        }
+                        Err(e) => {
+                            tracing::error!("Error decoding message: {}", e);
                         }
                     }
                 }
