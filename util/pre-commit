@@ -7,4 +7,4 @@ if [ -z "$FILES" ]; then
   exit 0
 fi
 
-(cd api && cargo sqlx prepare)
+(cd api && cargo sqlx prepare && git add .sqlx)
