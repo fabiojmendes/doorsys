@@ -43,24 +43,24 @@ impl EntryLogRepository {
         &self,
         code: i32,
         code_type: &str,
-        mac_addr: Option<&str>,
+        net_id: Option<&str>,
         success: bool,
         event_date: &DateTime<Utc>,
     ) -> Result<EntryLog, sqlx::Error> {
         sqlx::query_as!(
             EntryLog,
             r#"
-            with temp(code, mac_addr) as (values($1::int, $3::varchar))
+            with temp(code, net_id) as (values($1::int, $3::varchar))
             insert into entry_log (staff_id, code, code_type, device_id, success, event_date) 
                 select s.id, t.code, $2, d.id, $4, $5
                 from temp t
                 left join staff s on s.pin = t.code or s.fob = t.code
-                left join device d on d.mac_addr = t.mac_addr
+                left join device d on d.net_id = t.net_id
             returning *
             "#,
             code,
             code_type,
-            mac_addr,
+            net_id,
             success,
             event_date
         )

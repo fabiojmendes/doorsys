@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use bincode::config::Configuration;
-use chrono::{DateTime, Utc};
 use doorsys_protocol::Audit;
 use rumqttc::{AsyncClient, Event, MqttOptions, Packet, QoS};
 use sqlx::PgPool;
@@ -32,22 +31,15 @@ pub async fn start(pool: PgPool, mqtt_url: &str) -> anyhow::Result<AsyncClient> 
                     if let Ok((audit, len)) =
                         bincode::decode_from_slice::<Audit, _>(&p.payload, BINCODE_CONFIG)
                     {
-                        let mac_addr = p.topic.split('/').nth(2);
-                        tracing::info!(
-                            "Audit({}) [{:?}]: {:?}",
-                            len,
-                            mac_addr.unwrap_or(""),
-                            audit
-                        );
-                        let code_type = audit.code_type.to_string();
-                        let event_date: DateTime<Utc> = audit.timestamp.into();
+                        let net_id = p.topic.split('/').nth(2);
+                        tracing::info!("Audit({}) [{:?}]: {:?}", len, net_id.unwrap_or(""), audit);
                         match entry_repo
                             .create_with_code(
                                 audit.code,
-                                &code_type,
-                                mac_addr,
+                                &audit.code_type.to_string(),
+                                net_id,
                                 audit.success,
-                                &event_date,
+                                &audit.timestamp.into(),
                             )
                             .await
                         {
