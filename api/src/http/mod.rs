@@ -12,7 +12,10 @@ use axum::{
 use rumqttc::AsyncClient;
 use serde_json::json;
 use sqlx::PgPool;
-use tokio::net::TcpListener;
+use tokio::{
+    net::TcpListener,
+    signal::{self, unix::SignalKind},
+};
 use tower_http::trace::TraceLayer;
 
 pub mod customer_handler;
@@ -124,8 +127,33 @@ pub async fn serve(pool: PgPool, mqtt_client: AsyncClient) -> anyhow::Result<()>
 
     let listerner = TcpListener::bind("0.0.0.0:3000").await?;
     axum::serve(listerner, app)
+        .with_graceful_shutdown(shutdown_signal())
         .await
         .context("error running HTTP server")
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
 }
 
 async fn health(State(pool): State<PgPool>) -> HttpResult<Json<serde_json::Value>> {
