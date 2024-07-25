@@ -35,7 +35,7 @@ use crate::wiegand::Reader;
 const MAX_PIN_LENGTH: usize = 8;
 const STAR_KEY: u8 = 0x0A;
 const HASH_KEY: u8 = 0x0B;
-const DOOR_OPEN_DELAY: Duration = Duration::from_secs(2);
+const DOOR_OPEN_DELAY: Duration = Duration::from_secs(4);
 
 const GPIO_D0: i32 = 4;
 const GPIO_D1: i32 = 5;
@@ -77,7 +77,7 @@ fn keypad_feedback(
     success: bool,
     pin: &mut PinDriver<'_, impl OutputPin, Output>,
 ) -> anyhow::Result<()> {
-    for _ in 0..6 {
+    for _ in 0..8 {
         if success {
             pin.set_low()?;
         } else {
