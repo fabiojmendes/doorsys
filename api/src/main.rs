@@ -17,6 +17,7 @@ async fn main() -> anyhow::Result<()> {
         .connect(&env::var("DATABASE_URL")?)
         .await?;
 
+    tracing::info!("Connected to database, executing migrations");
     sqlx::migrate!().run(&pool).await?;
 
     let mqtt_url = env::var("MQTT_URL")?;
