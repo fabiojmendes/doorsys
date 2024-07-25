@@ -68,6 +68,7 @@ pub async fn start(pool: PgPool, mqtt_url: &str) -> anyhow::Result<AsyncClient> 
                     }
                 }
                 Ok(Event::Incoming(Packet::ConnAck(_))) => {
+                    tracing::info!("Connected to mqtt broker and subscribing to topics");
                     if let Err(e) = client.subscribe("doorsys/audit/+", QoS::AtLeastOnce).await {
                         tracing::error!("Error subscribing to topic {}", e);
                     }
