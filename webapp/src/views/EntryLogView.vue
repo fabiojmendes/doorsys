@@ -88,7 +88,7 @@ async function load() {
   <table class="table table-striped">
     <thead>
       <tr>
-        <!-- <th>Door</th> -->
+        <th>Door</th>
         <th>Customer</th>
         <th>Staff</th>
         <th>Time</th>
@@ -101,7 +101,7 @@ async function load() {
           <td colspan="4">{{ date }}</td>
         </tr>
         <tr v-for="e in list">
-          <!-- <td>{{ e.deviceName }}</td> -->
+          <td>{{ e.deviceName }}</td>
           <td>
             <RouterLink v-if="e.customerId" :to="`/customers/${e.customerId}`">
               {{ e.customerName }}
