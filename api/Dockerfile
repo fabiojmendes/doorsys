@@ -10,10 +10,7 @@ COPY --from=builder /usr/src/doorsys/api/entrypoint.sh /
 
 RUN apt-get update && \
   apt-get install -y curl && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/*
-
-HEALTHCHECK CMD ["curl", "-fsS", "http://localhost:3000"]
+  apt-get clean 
 
 ENV DATABASE_HOST=localhost
 ENV DATABASE_PORT=5432
