@@ -22,7 +22,7 @@ ENV MQTT_PORT=1883
 ENV MQTT_OPTS="client_id=doorsys-api&clean_session=false&keep_alive_secs=5"
 ENV MQTT_USER=user
 ENV MQTT_PASS=""
-ENV RUST_LOG="doorsys_api=debug,tower_http=debug"
+ENV RUST_LOG=info
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["doorsys-api"]
