@@ -13,7 +13,7 @@ RUN apt-get update && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
-HEALTHCHECK CMD curl -f localhost:3000
+HEALTHCHECK CMD ["curl", "-fsS", "http://localhost:3000"]
 
 ENV DATABASE_HOST=localhost
 ENV DATABASE_PORT=5432
