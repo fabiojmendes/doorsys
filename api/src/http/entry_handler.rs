@@ -19,7 +19,7 @@ pub async fn list(
     filter: Query<Filter>,
 ) -> HttpResult<Json<Vec<EntryLogDisplay>>> {
     let date_range = filter.start_date..filter.end_date;
-    tracing::info!("Getting entry_logs for {:?}", filter);
+    tracing::debug!("Getting entry_logs for {:?}", filter);
     let entry_list = entry_log_repo
         .fetch_all(date_range, filter.customer_id)
         .await?;

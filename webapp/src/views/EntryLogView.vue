@@ -98,7 +98,7 @@ async function load() {
     <tbody>
       <template v-for="(list, date) in entryMap" :key="date">
         <tr class="table-dark text-center">
-          <td colspan="4">{{ date }}</td>
+          <td colspan="5">{{ date }}</td>
         </tr>
         <tr v-for="e in list">
           <td>{{ e.deviceName }}</td>

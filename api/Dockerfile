@@ -8,6 +8,13 @@ FROM debian:bookworm-slim
 COPY --from=builder /usr/local/cargo/bin/doorsys-api /usr/local/bin/doorsys-api
 COPY --from=builder /usr/src/doorsys/api/entrypoint.sh /
 
+RUN apt-get update && \
+  apt-get install -y curl && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
+
+HEALTHCHECK CMD curl -f localhost:3000
+
 ENV DATABASE_HOST=localhost
 ENV DATABASE_PORT=5432
 ENV DATABASE_NAME=doorsys
@@ -18,7 +25,7 @@ ENV MQTT_PORT=1883
 ENV MQTT_OPTS="client_id=doorsys-api&clean_session=false&keep_alive_secs=5"
 ENV MQTT_USER=user
 ENV MQTT_PASS=""
-ENV RUST_LOG="doorsys_api=debug,tower_http=trace"
+ENV RUST_LOG="doorsys_api=info,tower_http=trace"
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["doorsys-api"]
