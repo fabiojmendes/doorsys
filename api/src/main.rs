@@ -8,7 +8,8 @@ use sqlx::postgres::PgPoolOptions;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
+    let format = tracing_subscriber::fmt::format().without_time().compact();
+    tracing_subscriber::fmt().event_format(format).init();
 
     tracing::info!("Starting Server");
 
