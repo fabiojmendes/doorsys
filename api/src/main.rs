@@ -17,7 +17,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Starting Server");
 
     let pool = PgPoolOptions::new()
-        .max_connections(10)
+        .min_connections(5)
         .connect(&env::var("DATABASE_URL")?)
         .await?;
 
