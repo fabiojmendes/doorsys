@@ -5,11 +5,14 @@ mod http;
 mod mqtt;
 
 use sqlx::postgres::PgPoolOptions;
+use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let format = tracing_subscriber::fmt::format().without_time().compact();
-    tracing_subscriber::fmt().event_format(format).init();
+    tracing_subscriber::fmt()
+        .without_time()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
 
     tracing::info!("Starting Server");
 

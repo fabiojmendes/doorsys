@@ -8,6 +8,4 @@ if [ -z "$MQTT_URL" ]; then
   export MQTT_URL="mqtt://${MQTT_USER}:${MQTT_PASS}@${MQTT_HOST}:${MQTT_PORT}?${MQTT_OPTS}"
 fi
 
-export RUST_LOG
-
 exec "$@"
