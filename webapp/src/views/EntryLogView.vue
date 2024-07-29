@@ -1,5 +1,5 @@
 <script setup>
-import { inject, computed, onMounted, ref } from 'vue'
+import { inject, computed, watch, onMounted, ref } from 'vue'
 
 const LABELS = {
   pin: '123',
@@ -7,51 +7,57 @@ const LABELS = {
 }
 
 const api = inject('api')
-const entries = ref([])
-const entryMap = computed(() => {
-  return entries.value.reduce((acc, e) => {
-    const date = e.eventDate.toLocaleDateString()
-    if (!acc[date]) {
-      acc[date] = []
-    }
-    acc[date].push(e)
-    return acc
-  }, {})
-})
 
-const customers = ref([])
+const loading = ref(false)
 const filter = ref({
   startDate: new Date().toLocaleDateString('en-CA'),
   endDate: new Date().toLocaleDateString('en-CA'),
-  customerId: null
+  customerId: null,
+  deviceId: null
+})
+const customers = ref([])
+const devices = ref([])
+const entries = ref([])
+
+const entryMap = computed(() => {
+  return entries.value.reduce((acc, rawEntry) => {
+    const entry = {
+      ...rawEntry,
+      eventDate: new Date(rawEntry.eventDate),
+      codeTypeLabel: LABELS[rawEntry.codeType]
+    }
+    const date = entry.eventDate.toLocaleDateString()
+    if (!acc[date]) {
+      acc[date] = []
+    }
+    acc[date].push(entry)
+    return acc
+  }, {})
 })
 
 onMounted(async () => {
   const res = await api.get('/customers')
   customers.value = res.data
 
-  load()
+  const res2 = await api.get('/devices')
+  devices.value = res2.data
+
+  load(filter.value)
 })
 
-async function load() {
-  const startDate = new Date(filter.value.startDate + ' 00:00:00')
-  const endDate = new Date(filter.value.endDate + ' 23:59:59.999')
+async function load(params) {
+  loading.value = true
+  const startDate = new Date(params.startDate + ' 00:00:00')
+  const endDate = new Date(params.endDate + ' 23:59:59.999')
 
   const res = await api.get('/entry_logs', {
-    params: {
-      start_date: startDate,
-      end_date: endDate,
-      customer_id: filter.value.customerId
-    }
+    params: { ...params, startDate, endDate }
   })
-  entries.value = res.data.map((item) => {
-    return {
-      ...item,
-      eventDate: new Date(item.eventDate),
-      codeTypeLabel: LABELS[item.codeType]
-    }
-  })
+  entries.value = res.data
+  loading.value = false
 }
+
+watch(filter, load, { deep: true })
 </script>
 
 <template>
@@ -78,17 +84,33 @@ async function load() {
           </select>
         </div>
       </div>
-
-      <div class="text-end">
-        <input type="submit" class="btn btn-primary" value="Filter" />
-      </div>
     </form>
   </div>
+
+  <ul class="nav nav-tabs mt-2">
+    <li class="nav-item">
+      <a
+        class="nav-link"
+        :class="filter.deviceId == null ? 'active' : ''"
+        href="#"
+        @click="filter.deviceId = null"
+        >All</a
+      >
+    </li>
+    <li v-for="d in devices" class="nav-item">
+      <a
+        class="nav-link"
+        :class="d.id == filter.deviceId ? 'active' : ''"
+        href="#"
+        @click="filter.deviceId = d.id"
+        >{{ d.name }}</a
+      >
+    </li>
+  </ul>
 
   <table class="table table-striped">
     <thead>
       <tr>
-        <th>Door</th>
         <th>Customer</th>
         <th>Staff</th>
         <th>Time</th>
@@ -98,10 +120,9 @@ async function load() {
     <tbody>
       <template v-for="(list, date) in entryMap" :key="date">
         <tr class="table-dark text-center">
-          <td colspan="5">{{ date }}</td>
+          <td colspan="4">{{ date }}</td>
         </tr>
         <tr v-for="e in list">
-          <td>{{ e.deviceName }}</td>
           <td>
             <RouterLink v-if="e.customerId" :to="`/customers/${e.customerId}`">
               {{ e.customerName }}
@@ -134,5 +155,9 @@ async function load() {
       </template>
     </tbody>
   </table>
-  <div v-if="entries.length === 0" class="text-center">No Results found</div>
+  <div class="text-center">
+    <span v-if="loading">Loading...</span>
+    <span v-else-if="entries.length === 0">No Results found</span>
+  </div>
 </template>
+span
