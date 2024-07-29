@@ -1,19 +1,14 @@
-use std::env;
-
 mod domain;
 mod http;
+mod logging;
 mod mqtt;
 
 use sqlx::postgres::PgPoolOptions;
-use tracing_subscriber::EnvFilter;
+use std::env;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .without_time()
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
-
+    logging::init();
     tracing::info!("Starting Server");
 
     let pool = PgPoolOptions::new()
