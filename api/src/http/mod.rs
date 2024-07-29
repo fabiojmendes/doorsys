@@ -1,5 +1,6 @@
 use crate::domain::{
-    customer::CustomerRepository, entry_log::EntryLogRepository, staff::StaffRepository,
+    customer::CustomerRepository, device::DeviceRepository, entry_log::EntryLogRepository,
+    staff::StaffRepository,
 };
 use anyhow::Context;
 use axum::{
@@ -19,6 +20,7 @@ use tokio::{
 use tower_http::trace::TraceLayer;
 
 pub mod customer_handler;
+pub mod device_handler;
 pub mod entry_handler;
 pub mod staff_handler;
 
@@ -28,6 +30,7 @@ pub struct AppState {
     pub customer_repo: CustomerRepository,
     pub staff_repo: StaffRepository,
     pub entry_log_repo: EntryLogRepository,
+    pub device_repo: DeviceRepository,
     pub mqtt_client: AsyncClient,
 }
 
@@ -52,6 +55,12 @@ impl FromRef<AppState> for StaffRepository {
 impl FromRef<AppState> for EntryLogRepository {
     fn from_ref(input: &AppState) -> Self {
         input.entry_log_repo.clone()
+    }
+}
+
+impl FromRef<AppState> for DeviceRepository {
+    fn from_ref(input: &AppState) -> Self {
+        input.device_repo.clone()
     }
 }
 
@@ -94,11 +103,13 @@ pub async fn serve(pool: PgPool, mqtt_client: AsyncClient) -> anyhow::Result<()>
     let customer_repo = CustomerRepository { pool: pool.clone() };
     let staff_repo = StaffRepository { pool: pool.clone() };
     let entry_log_repo = EntryLogRepository { pool: pool.clone() };
+    let device_repo = DeviceRepository { pool: pool.clone() };
     let app_state = AppState {
         pool,
         customer_repo,
         staff_repo,
         entry_log_repo,
+        device_repo,
         mqtt_client,
     };
 
@@ -120,6 +131,7 @@ pub async fn serve(pool: PgPool, mqtt_client: AsyncClient) -> anyhow::Result<()>
         )
         .route("/staff/:id/pin", post(staff_handler::update_pin))
         .route("/staff/:id/status", put(staff_handler::update_status))
+        .route("/devices", get(device_handler::list))
         .route("/entry_logs", get(entry_handler::list))
         .route("/admin/bulk", post(staff_handler::bulk_load_codes))
         .layer(TraceLayer::new_for_http())
