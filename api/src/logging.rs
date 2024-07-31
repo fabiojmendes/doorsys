@@ -24,8 +24,8 @@ where
         let metadata = event.metadata();
         let priority = match metadata.level() {
             &Level::TRACE => 7,
-            &Level::DEBUG => 6,
-            &Level::INFO => 5,
+            &Level::DEBUG => 7,
+            &Level::INFO => 6,
             &Level::WARN => 4,
             &Level::ERROR => 3,
         };
