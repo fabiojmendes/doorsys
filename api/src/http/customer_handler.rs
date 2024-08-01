@@ -1,5 +1,8 @@
 use super::HttpResult;
-use crate::domain::customer::{Customer, CustomerRepository, NewCustomer};
+use crate::domain::{
+    customer::{Customer, CustomerRepository, NewCustomer},
+    staff::StaffService,
+};
 use axum::{
     extract::{Path, Query, State},
     Json,
@@ -31,11 +34,14 @@ pub async fn update(
 
 pub async fn update_status(
     State(customer_repo): State<CustomerRepository>,
+    State(staff_service): State<StaffService>,
     Path(id): Path<i64>,
     Json(active): Json<bool>,
 ) -> HttpResult<Json<Customer>> {
     let customer = customer_repo.update_status(id, active).await?;
-    // TODO: deactivate staff as well
+    if !active {
+        staff_service.bulk_update_status(id, active).await?;
+    }
     Ok(Json(customer))
 }
 

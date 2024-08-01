@@ -1,6 +1,10 @@
 use chrono::{DateTime, Utc};
+use doorsys_protocol::UserAction;
+use rumqttc::{AsyncClient, QoS};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+
+use crate::mqtt;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -107,5 +111,46 @@ impl StaffRepository {
         )
         .fetch_all(&self.pool)
         .await
+    }
+}
+
+#[derive(Clone)]
+pub struct StaffService {
+    pub staff_repo: StaffRepository,
+    pub mqtt_client: AsyncClient,
+}
+
+impl StaffService {
+    pub async fn bulk_update_status(&self, customer_id: i64, active: bool) -> anyhow::Result<()> {
+        let staff_list = self.staff_repo.fetch_all(customer_id).await?;
+        for staff in staff_list {
+            self.update_status(staff.id, active).await?;
+        }
+        Ok(())
+    }
+
+    pub async fn update_status(&self, id: i64, active: bool) -> anyhow::Result<Staff> {
+        let staff = self.staff_repo.update_status(id, active).await?;
+        let pin_action = match active {
+            true => UserAction::Add(staff.pin),
+            false => UserAction::Del(staff.pin),
+        };
+
+        let payload = bincode::encode_to_vec(pin_action, mqtt::BINCODE_CONFIG)?;
+        self.mqtt_client
+            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+            .await?;
+
+        if let Some(fob) = staff.fob {
+            let fob_action = match active {
+                true => UserAction::Add(fob),
+                false => UserAction::Del(fob),
+            };
+            let payload = bincode::encode_to_vec(fob_action, mqtt::BINCODE_CONFIG)?;
+            self.mqtt_client
+                .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
+                .await?;
+        }
+        Ok(staff)
     }
 }

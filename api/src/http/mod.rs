@@ -1,6 +1,8 @@
 use crate::domain::{
-    customer::CustomerRepository, device::DeviceRepository, entry_log::EntryLogRepository,
-    staff::StaffRepository,
+    customer::CustomerRepository,
+    device::DeviceRepository,
+    entry_log::EntryLogRepository,
+    staff::{StaffRepository, StaffService},
 };
 use anyhow::Context;
 use axum::{
@@ -27,16 +29,23 @@ pub mod staff_handler;
 #[derive(Clone)]
 pub struct AppState {
     pub pool: PgPool,
+    pub mqtt_client: AsyncClient,
     pub customer_repo: CustomerRepository,
     pub staff_repo: StaffRepository,
     pub entry_log_repo: EntryLogRepository,
     pub device_repo: DeviceRepository,
-    pub mqtt_client: AsyncClient,
+    pub staff_service: StaffService,
 }
 
 impl FromRef<AppState> for PgPool {
     fn from_ref(input: &AppState) -> Self {
         input.pool.clone()
+    }
+}
+
+impl FromRef<AppState> for AsyncClient {
+    fn from_ref(input: &AppState) -> Self {
+        input.mqtt_client.clone()
     }
 }
 
@@ -64,9 +73,9 @@ impl FromRef<AppState> for DeviceRepository {
     }
 }
 
-impl FromRef<AppState> for AsyncClient {
+impl FromRef<AppState> for StaffService {
     fn from_ref(input: &AppState) -> Self {
-        input.mqtt_client.clone()
+        input.staff_service.clone()
     }
 }
 
@@ -104,13 +113,18 @@ pub async fn serve(pool: PgPool, mqtt_client: AsyncClient) -> anyhow::Result<()>
     let staff_repo = StaffRepository { pool: pool.clone() };
     let entry_log_repo = EntryLogRepository { pool: pool.clone() };
     let device_repo = DeviceRepository { pool: pool.clone() };
+    let staff_service = StaffService {
+        staff_repo: staff_repo.clone(),
+        mqtt_client: mqtt_client.clone(),
+    };
     let app_state = AppState {
         pool,
+        mqtt_client,
         customer_repo,
         staff_repo,
         entry_log_repo,
         device_repo,
-        mqtt_client,
+        staff_service,
     };
 
     let app = Router::new()

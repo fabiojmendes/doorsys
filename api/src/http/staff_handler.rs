@@ -1,6 +1,6 @@
 use super::HttpResult;
 use crate::{
-    domain::staff::{NewStaff, Staff, StaffRepository},
+    domain::staff::{NewStaff, Staff, StaffRepository, StaffService},
     mqtt,
 };
 use axum::{
@@ -101,32 +101,11 @@ pub async fn update_pin(
 }
 
 pub async fn update_status(
-    State(staff_repo): State<StaffRepository>,
-    State(mqtt_client): State<AsyncClient>,
+    State(staff_service): State<StaffService>,
     Path(id): Path<i64>,
     Json(active): Json<bool>,
 ) -> HttpResult<Json<Staff>> {
-    let staff = staff_repo.update_status(id, active).await?;
-    let pin_action = match active {
-        true => UserAction::Add(staff.pin),
-        false => UserAction::Del(staff.pin),
-    };
-
-    let payload = bincode::encode_to_vec(pin_action, mqtt::BINCODE_CONFIG)?;
-    mqtt_client
-        .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-        .await?;
-
-    if let Some(fob) = staff.fob {
-        let fob_action = match active {
-            true => UserAction::Add(fob),
-            false => UserAction::Del(fob),
-        };
-        let payload = bincode::encode_to_vec(fob_action, mqtt::BINCODE_CONFIG)?;
-        mqtt_client
-            .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
-            .await?;
-    }
+    let staff = staff_service.update_status(id, active).await?;
     Ok(Json(staff))
 }
 
