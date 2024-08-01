@@ -7,6 +7,7 @@ pub struct Customer {
     pub id: i64,
     pub name: String,
     pub email: String,
+    pub active: bool,
     pub notes: Option<String>,
 }
 
@@ -30,10 +31,14 @@ impl CustomerRepository {
             .await
     }
 
-    pub async fn fetch_all(&self) -> Result<Vec<Customer>, sqlx::Error> {
-        sqlx::query_as!(Customer, r#"select * from customer order by name"#)
-            .fetch_all(&self.pool)
-            .await
+    pub async fn fetch_all(&self, active: Option<bool>) -> Result<Vec<Customer>, sqlx::Error> {
+        sqlx::query_as!(
+            Customer,
+            r#"select * from customer where (active = $1 or $1 is null) order by name"#,
+            active
+        )
+        .fetch_all(&self.pool)
+        .await
     }
 
     pub async fn update(
@@ -47,6 +52,17 @@ impl CustomerRepository {
             new_customer.name,
             new_customer.email,
             new_customer.notes,
+            id,
+        )
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    pub async fn update_status(&self, id: i64, active: bool) -> Result<Customer, sqlx::Error> {
+        sqlx::query_as!(
+            Customer,
+            r#"update customer set active = $1 where id = $2 returning *"#,
+            active,
             id,
         )
         .fetch_one(&self.pool)

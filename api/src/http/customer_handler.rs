@@ -1,9 +1,16 @@
 use super::HttpResult;
 use crate::domain::customer::{Customer, CustomerRepository, NewCustomer};
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     Json,
 };
+use serde::Deserialize;
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Filter {
+    active: Option<bool>,
+}
 
 pub async fn create(
     State(customer_repo): State<CustomerRepository>,
@@ -22,6 +29,16 @@ pub async fn update(
     Ok(Json(customer))
 }
 
+pub async fn update_status(
+    State(customer_repo): State<CustomerRepository>,
+    Path(id): Path<i64>,
+    Json(active): Json<bool>,
+) -> HttpResult<Json<Customer>> {
+    let customer = customer_repo.update_status(id, active).await?;
+    // TODO: deactivate staff as well
+    Ok(Json(customer))
+}
+
 pub async fn get(
     State(customer_repo): State<CustomerRepository>,
     Path(id): Path<i64>,
@@ -32,7 +49,8 @@ pub async fn get(
 
 pub async fn list(
     State(customer_repo): State<CustomerRepository>,
+    Query(filter): Query<Filter>,
 ) -> HttpResult<Json<Vec<Customer>>> {
-    let customers = customer_repo.fetch_all().await?;
+    let customers = customer_repo.fetch_all(filter.active).await?;
     Ok(Json(customers))
 }
