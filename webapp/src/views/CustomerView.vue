@@ -45,10 +45,23 @@ async function save() {
   }
   editing.value = false
 }
+
+async function updateStatus() {
+  const confirmed = confirm(
+    `${customer.value.active ? 'Deactivate' : 'Activate'} ${customer.value.name}?`
+  )
+  if (confirmed) {
+    const res = await api.put(`/customers/${customer.value.id}/status`, !customer.value.active)
+    customer.value = res.data
+  }
+}
 </script>
 
 <template>
   <BackButton />
+  <div v-if="!customer.active" class="alert alert-secondary mt-3" role="alert">
+    This customer is inactive
+  </div>
   <div class="card mb-3 mt-3">
     <div class="card-body">
       <form v-if="editing" @submit.prevent="save">
@@ -82,7 +95,15 @@ async function save() {
             {{ customer.notes }}
           </p>
         </div>
-        <button type="button" class="btn btn-primary" @click="toggleEdit">Edit</button>
+        <div class="d-inline-flex gap-2">
+          <button type="button" class="btn btn-primary" @click="toggleEdit">Edit</button>
+          <button v-if="customer.active" type="button" class="btn btn-danger" @click="updateStatus">
+            Deactivate
+          </button>
+          <button v-else type="button" class="btn btn-success" @click="updateStatus">
+            Activate
+          </button>
+        </div>
       </div>
     </div>
   </div>

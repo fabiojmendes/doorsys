@@ -35,7 +35,7 @@ async function addStaffMember() {
 <template>
   <div class="border rounded p-3">
     <h5>Staff Members</h5>
-    <form @submit.prevent="addStaffMember">
+    <form @submit.prevent="addStaffMember" v-if="customer.active">
       <div class="row g-3 mb-3">
         <div class="col input-group input-group-sm">
           <span class="input-group-text">
@@ -99,9 +99,8 @@ async function addStaffMember() {
       </thead>
       <tbody>
         <tr @click="router.push(`/staff/${s.id}`)" v-for="s in staffList">
-          <td>
-            <span v-if="s.active">{{ s.name }}</span>
-            <s v-else>{{ s.name }}</s>
+          <td :class="s.active ? '' : 'inactive'">
+            {{ s.name }}
           </td>
           <td class="text-secondary">{{ s.phone }}</td>
           <td class="text-end">

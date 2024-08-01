@@ -36,7 +36,7 @@ const entryMap = computed(() => {
 })
 
 onMounted(async () => {
-  const res = await api.get('/customers')
+  const res = await api.get('/customers', { params: { active: true } })
   customers.value = res.data
 
   const res2 = await api.get('/devices')
