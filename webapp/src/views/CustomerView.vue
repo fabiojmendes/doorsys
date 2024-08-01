@@ -1,5 +1,5 @@
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import StaffList from '@/components/StaffList.vue'
 import BackButton from '@/components/BackButton.vue'
@@ -9,10 +9,12 @@ const route = useRoute()
 const router = useRouter()
 
 const customer = ref({})
+const staffList = ref([])
 const editing = ref(false)
 const isNewCustomer = computed(() => customer.value.id === undefined)
 
 onMounted(load)
+watch(customer, loadStaff)
 
 function toggleEdit() {
   editing.value = !editing.value
@@ -25,12 +27,13 @@ async function load() {
     return
   }
 
-  try {
-    const res = await api.get(`/customers/${id}`)
-    customer.value = res.data
-  } catch (e) {
-    console.log('error:')
-  }
+  const res = await api.get(`/customers/${id}`)
+  customer.value = res.data
+}
+
+async function loadStaff(customer) {
+  const staffRes = await api.get(`/customers/${customer.id}/staff`)
+  staffList.value = staffRes.data
 }
 
 async function save() {
@@ -59,7 +62,7 @@ async function updateStatus() {
 
 <template>
   <BackButton />
-  <div v-if="!customer.active" class="alert alert-secondary mt-3" role="alert">
+  <div v-if="customer.active === false" class="alert alert-secondary mt-3" role="alert">
     This customer is inactive
   </div>
   <div class="card mb-3 mt-3">
@@ -108,5 +111,5 @@ async function updateStatus() {
     </div>
   </div>
 
-  <StaffList v-if="!isNewCustomer" :customer="customer" />
+  <StaffList v-if="!isNewCustomer" :customer="customer" :staffList="staffList" />
 </template>

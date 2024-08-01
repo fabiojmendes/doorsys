@@ -1,23 +1,24 @@
 <script setup>
 import { onErrorCaptured, ref } from 'vue'
-import { RouterView } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
 import Navbar from './components/Navbar.vue'
 import { AxiosError } from 'axios'
 
+const router = useRouter()
 const error = ref()
 
 onErrorCaptured((err, vm, info) => {
   if (err instanceof AxiosError) {
     error.value = {
-      message: err.message
+      message: err.message,
+      context: err.response?.data?.msg
     }
-  } else {
-    error.value = {
-      message: err,
-      context: info
-    }
+    return false
   }
-  return false
+})
+
+router.afterEach(() => {
+  error.value = null
 })
 </script>
 

@@ -1,26 +1,20 @@
 <script setup>
-import { inject, onMounted, ref } from 'vue'
+import { inject, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const api = inject('api')
-const props = defineProps({ customer: Object })
+const props = defineProps({ customer: Object, staffList: Array })
 
-const staffList = ref([])
 const formName = ref({})
 const newStaff = ref({})
 const status = ref({})
-
-onMounted(async () => {
-  const res = await api.get(`/customers/${props.customer.id}/staff`)
-  staffList.value = res.data
-})
 
 async function addStaffMember() {
   status.value = {}
   try {
     const res = await api.post('/staff', { customerId: props.customer.id, ...newStaff.value })
-    staffList.value.push(res.data)
+    props.staffList.push(res.data)
     newStaff.value = {}
     formName.value.focus()
   } catch (e) {
@@ -98,7 +92,7 @@ async function addStaffMember() {
         </tr>
       </thead>
       <tbody>
-        <tr @click="router.push(`/staff/${s.id}`)" v-for="s in staffList">
+        <tr @click="router.push(`/staff/${s.id}`)" v-for="s in props.staffList">
           <td :class="s.active ? '' : 'inactive'">
             {{ s.name }}
           </td>
