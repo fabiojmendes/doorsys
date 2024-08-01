@@ -22,6 +22,11 @@
         "ordinal": 3,
         "name": "notes",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "active",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -35,7 +40,8 @@
       false,
       false,
       false,
-      true
+      true,
+      false
     ]
   },
   "hash": "4fbe62ca61ba38184e5295671f8ac841a36851d2f3a3282decc11c96a11f4ee2"

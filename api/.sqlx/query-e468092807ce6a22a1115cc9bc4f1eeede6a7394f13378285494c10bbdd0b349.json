@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select * from customer where id = $1",
+  "query": "update customer set active = $1 where id = $2 returning *",
   "describe": {
     "columns": [
       {
@@ -31,6 +31,7 @@
     ],
     "parameters": {
       "Left": [
+        "Bool",
         "Int8"
       ]
     },
@@ -42,5 +43,5 @@
       false
     ]
   },
-  "hash": "95d7df4e2b70a8e1d19a34cf928e3605a24411750284f2e1684f53d84eeaeb2e"
+  "hash": "e468092807ce6a22a1115cc9bc4f1eeede6a7394f13378285494c10bbdd0b349"
 }
