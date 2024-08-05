@@ -83,6 +83,21 @@ impl StaffRepository {
         .await
     }
 
+    pub async fn bulk_update_status(
+        &self,
+        customer_id: i64,
+        active: bool,
+    ) -> Result<Vec<Staff>, sqlx::Error> {
+        sqlx::query_as!(
+            Staff,
+            r#"update staff set active = $1 where customer_id = $2 returning *"#,
+            active,
+            customer_id,
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
     pub async fn fetch_all(&self, customer_id: i64) -> Result<Vec<Staff>, sqlx::Error> {
         sqlx::query_as!(
             Staff,
@@ -122,16 +137,24 @@ pub struct StaffService {
 
 impl StaffService {
     pub async fn bulk_update_status(&self, customer_id: i64, active: bool) -> anyhow::Result<()> {
-        let staff_list = self.staff_repo.fetch_all(customer_id).await?;
+        let staff_list = self
+            .staff_repo
+            .bulk_update_status(customer_id, active)
+            .await?;
         for staff in staff_list {
-            self.update_status(staff.id, active).await?;
+            self.send_mqtt_message(&staff).await?;
         }
         Ok(())
     }
 
     pub async fn update_status(&self, id: i64, active: bool) -> anyhow::Result<Staff> {
         let staff = self.staff_repo.update_status(id, active).await?;
-        let pin_action = match active {
+        self.send_mqtt_message(&staff).await?;
+        Ok(staff)
+    }
+
+    pub async fn send_mqtt_message(&self, staff: &Staff) -> anyhow::Result<()> {
+        let pin_action = match staff.active {
             true => UserAction::Add(staff.pin),
             false => UserAction::Del(staff.pin),
         };
@@ -142,7 +165,7 @@ impl StaffService {
             .await?;
 
         if let Some(fob) = staff.fob {
-            let fob_action = match active {
+            let fob_action = match staff.active {
                 true => UserAction::Add(fob),
                 false => UserAction::Del(fob),
             };
@@ -151,6 +174,6 @@ impl StaffService {
                 .publish("doorsys/user", QoS::AtLeastOnce, false, payload)
                 .await?;
         }
-        Ok(staff)
+        Ok(())
     }
 }
