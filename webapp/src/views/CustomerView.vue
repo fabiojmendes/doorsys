@@ -94,6 +94,7 @@ async function updateStatus() {
         </h5>
         <div class="card-text">
           {{ customer.email }}
+          <hr />
           <p>
             {{ customer.notes }}
           </p>

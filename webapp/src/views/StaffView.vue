@@ -1,13 +1,14 @@
 <script setup>
 import { inject, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useToast } from 'vue-toastification'
 import BackButton from '../components/BackButton.vue'
 
 const api = inject('api')
 const route = useRoute()
+const toast = useToast()
 
 const staff = ref({})
-const status = ref({})
 
 onMounted(loadStaff)
 
@@ -19,19 +20,10 @@ async function loadStaff() {
 
 async function save() {
   // Set fob to null if empty
-  status.value = {}
   staff.value.fob ||= null
-  try {
-    const res = await api.put(`/staff/${staff.value.id}`, staff.value)
-    staff.value = res.data
-    status.value = { class: 'alert-success', message: 'Saved with success' }
-  } catch (e) {
-    status.value = {
-      class: 'alert-danger',
-      message: e,
-      context: e.response?.data?.msg || e.response?.data
-    }
-  }
+  const res = await api.put(`/staff/${staff.value.id}`, staff.value)
+  staff.value = res.data
+  toast.success('Saved with success')
 }
 
 async function resetPin() {
@@ -99,13 +91,6 @@ async function updateStatus() {
           <button v-else type="button" class="btn btn-success" @click="updateStatus">
             Activate
           </button>
-        </div>
-        <div v-if="status.message" :class="status.class" class="mt-3 alert" role="alert">
-          <p>{{ status.message }}</p>
-          <template v-if="status.context">
-            <hr />
-            <p>{{ status.context }}</p>
-          </template>
         </div>
       </form>
     </div>

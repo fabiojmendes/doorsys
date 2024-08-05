@@ -1,37 +1,27 @@
 <script setup>
-import { onErrorCaptured, ref } from 'vue'
-import { RouterView, useRouter } from 'vue-router'
+import { onErrorCaptured } from 'vue'
+import { RouterView } from 'vue-router'
 import Navbar from './components/Navbar.vue'
 import { AxiosError } from 'axios'
+import { useToast } from 'vue-toastification'
 
-const router = useRouter()
-const error = ref()
+const toast = useToast()
 
 onErrorCaptured((err, vm, info) => {
   if (err instanceof AxiosError) {
-    error.value = {
-      message: err.message,
-      context: err.response?.data?.msg
-    }
+    const message = err.response?.data?.msg || err.response?.data || err.message
+    toast.error(message)
     return false
+  } else {
+    toast.error('Oops! Unkown error')
   }
-})
-
-router.afterEach(() => {
-  error.value = null
+  return true
 })
 </script>
 
 <template>
   <Navbar />
   <section class="container main-container">
-    <div v-if="error" class="mt-3 alert alert-danger" role="alert">
-      <p>{{ error.message }}</p>
-      <template v-if="error.context">
-        <hr />
-        <p>{{ error.context }}</p>
-      </template>
-    </div>
     <RouterView />
   </section>
 </template>

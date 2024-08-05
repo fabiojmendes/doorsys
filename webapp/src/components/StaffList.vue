@@ -2,27 +2,18 @@
 import { inject, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-const router = useRouter()
 const api = inject('api')
+const router = useRouter()
 const props = defineProps({ customer: Object, staffList: Array })
 
 const formName = ref({})
 const newStaff = ref({})
-const status = ref({})
 
 async function addStaffMember() {
-  status.value = {}
-  try {
-    const res = await api.post('/staff', { customerId: props.customer.id, ...newStaff.value })
-    props.staffList.push(res.data)
-    newStaff.value = {}
-    formName.value.focus()
-  } catch (e) {
-    status.value = {
-      message: e,
-      context: e.response?.data?.msg
-    }
-  }
+  const res = await api.post('/staff', { customerId: props.customer.id, ...newStaff.value })
+  props.staffList.push(res.data)
+  newStaff.value = {}
+  formName.value.focus()
 }
 </script>
 
@@ -74,13 +65,6 @@ async function addStaffMember() {
       <div class="text-end">
         <input type="reset" class="btn btn-secondary btn-sm" value="Reset" />
         <input type="submit" class="btn btn-primary btn-sm ms-2" value="Add" />
-      </div>
-      <div v-show="status.message" class="mt-3 alert alert-danger" role="alert">
-        <p>{{ status.message }}</p>
-        <template v-if="status.context">
-          <hr />
-          <p class="mb-0">{{ status.context }}</p>
-        </template>
       </div>
     </form>
     <table class="table table-hover">

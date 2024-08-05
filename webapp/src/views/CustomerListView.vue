@@ -9,7 +9,7 @@ const customers = ref([])
 const filter = ref({ active: true })
 
 onMounted(async () => {
-  load(filter.value)
+  await load(filter.value)
 })
 
 async function load(params) {

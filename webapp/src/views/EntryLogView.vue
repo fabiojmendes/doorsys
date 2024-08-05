@@ -42,7 +42,7 @@ onMounted(async () => {
   const res2 = await api.get('/devices')
   devices.value = res2.data
 
-  load(filter.value)
+  await load(filter.value)
 })
 
 async function load(params) {
