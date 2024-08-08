@@ -1,11 +1,10 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
 use doorsys_protocol::UserAction;
 use esp_idf_svc::mqtt::client::{
-    ConnState, Details, EspMqttClient, Event, Message, MessageImpl, MqttClientConfiguration, QoS,
+    Details, EspMqttClient, EventPayload, MqttClientConfiguration, QoS,
 };
-use esp_idf_svc::sys::EspError;
 
 use crate::user::UserDB;
 
@@ -18,7 +17,7 @@ const BINCODE_CONFIG: bincode::config::Configuration = bincode::config::standard
 static mut SHARED_BUF: Vec<u8> = Vec::new();
 static mut SHARED_TOPIC: String = String::new();
 
-pub type MqttClient = EspMqttClient<'static, ConnState<MessageImpl, EspError>>;
+pub type MqttClient = EspMqttClient<'static>;
 
 pub fn setup_mqtt(net_id: &str, user_db: UserDB) -> anyhow::Result<Arc<Mutex<MqttClient>>> {
     let mqtt_config = MqttClientConfiguration {
@@ -29,55 +28,63 @@ pub fn setup_mqtt(net_id: &str, user_db: UserDB) -> anyhow::Result<Arc<Mutex<Mqt
         ..Default::default()
     };
 
-    let (client, mut conn) = EspMqttClient::new_with_conn(MQTT_URL, &mqtt_config)?;
+    let (sender, receiver) = mpsc::channel();
+
+    let client =
+        EspMqttClient::new_cb(MQTT_URL, &mqtt_config, move |event| match event.payload() {
+            EventPayload::Received {
+                id: _,
+                topic,
+                data,
+                details,
+            } => route_message(topic, data, details, &user_db),
+            EventPayload::Connected(session) => {
+                log::info!("Connected session = {session}");
+                if !session {
+                    sender.send(()).unwrap();
+                }
+            }
+            EventPayload::Error(e) => log::error!("from mqtt: {:?}", e),
+            event => log::info!("mqtt event: {:?}", event),
+        })?;
     let client = Arc::new(Mutex::new(client));
     let client_clone = client.clone();
 
     thread::spawn(move || {
-        while let Some(res) = conn.next() {
-            match res {
-                Ok(Event::Received(msg)) => route_message(msg, &user_db),
-                Ok(Event::Connected(_)) => {
-                    log::info!("mqtt event: Connected");
-                    if let Err(e) = client
-                        .lock()
-                        .unwrap()
-                        .subscribe("doorsys/user", QoS::AtLeastOnce)
-                    {
-                        log::error!("error subscribing: {:?}", e);
-                    }
-                }
-                Ok(event) => log::info!("mqtt event: {:?}", event),
-                Err(e) => log::warn!("from mqtt: {:?} {:?}", res, e),
-            }
+        while let Ok(_) = receiver.recv() {
+            let topic = "doorsys/user";
+            match client.lock().unwrap().subscribe(topic, QoS::AtLeastOnce) {
+                Ok(id) => log::info!("Subscribed to {topic} {id}"),
+                Err(e) => log::error!("Failed to subscribe to topic {topic}: {e}"),
+            };
         }
     });
 
     Ok(client_clone)
 }
 
-fn route_message(msg: impl Message, user_db: &UserDB) {
+fn route_message(topic: Option<&str>, data: &[u8], details: Details, user_db: &UserDB) {
     log::info!(
         "Message received {:?} {:?}, {} bytes",
-        msg.topic(),
-        msg.details(),
-        msg.data().len()
+        topic,
+        details,
+        data.len()
     );
-    let (topic, data) = match msg.details() {
+    let (topic, data) = match details {
         Details::InitialChunk(init) => unsafe {
             SHARED_BUF = Vec::with_capacity(init.total_data_size);
-            SHARED_BUF.extend_from_slice(msg.data());
-            SHARED_TOPIC = String::from(msg.topic().unwrap());
+            SHARED_BUF.extend_from_slice(data);
+            SHARED_TOPIC = String::from(topic.unwrap());
             return;
         },
         Details::SubsequentChunk(_sub) => unsafe {
-            SHARED_BUF.extend_from_slice(msg.data());
+            SHARED_BUF.extend_from_slice(data);
             if SHARED_BUF.len() != SHARED_BUF.capacity() {
                 return;
             }
             (&*SHARED_TOPIC, &*SHARED_BUF)
         },
-        Details::Complete => (msg.topic().unwrap(), msg.data()),
+        Details::Complete => (topic.unwrap(), data),
     };
     match topic {
         "doorsys/user" => process_user_message(data, user_db),

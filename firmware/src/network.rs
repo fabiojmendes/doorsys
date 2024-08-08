@@ -29,9 +29,9 @@ pub fn setup_wireless(
     log::info!("Device net_id: {net_id}");
 
     let wifi_configuration: Configuration = Configuration::Client(ClientConfiguration {
-        ssid: SSID.into(),
+        ssid: SSID.try_into().unwrap(),
+        password: PASSWORD.try_into().unwrap(),
         auth_method: AuthMethod::WPA2Personal,
-        password: PASSWORD.into(),
         ..Default::default()
     });
 
