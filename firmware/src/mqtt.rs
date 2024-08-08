@@ -51,7 +51,7 @@ pub fn setup_mqtt(net_id: &str, user_db: UserDB) -> anyhow::Result<Arc<Mutex<Mqt
     let client_clone = client.clone();
 
     thread::spawn(move || {
-        while let Ok(_) = receiver.recv() {
+        while receiver.recv().is_ok() {
             let topic = "doorsys/user";
             match client.lock().unwrap().subscribe(topic, QoS::AtLeastOnce) {
                 Ok(id) => log::info!("Subscribed to {topic} {id}"),
