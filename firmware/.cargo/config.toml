@@ -23,3 +23,4 @@ MCU = "esp32c3"
 # MCU = "esp32"
 # Note: these variables are not used when using pio builder (`cargo build --features pio`)
 ESP_IDF_VERSION = "v5.1.1"
+CRATE_CC_NO_DEFAULTS = "1"
