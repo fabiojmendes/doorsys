@@ -28,7 +28,7 @@ pub fn setup_mqtt(net_id: &str, user_db: UserDB) -> anyhow::Result<Arc<Mutex<Mqt
         ..Default::default()
     };
 
-    let (sender, receiver) = mpsc::channel();
+    let (conn_sender, conn_receiver) = mpsc::channel();
 
     let client =
         EspMqttClient::new_cb(MQTT_URL, &mqtt_config, move |event| match event.payload() {
@@ -40,18 +40,24 @@ pub fn setup_mqtt(net_id: &str, user_db: UserDB) -> anyhow::Result<Arc<Mutex<Mqt
             } => route_message(topic, data, details, &user_db),
             EventPayload::Connected(session) => {
                 log::info!("Connected session = {session}");
-                if !session {
-                    sender.send(()).unwrap();
-                }
+                conn_sender.send(()).unwrap();
             }
             EventPayload::Error(e) => log::error!("from mqtt: {:?}", e),
             event => log::info!("mqtt event: {:?}", event),
         })?;
     let client = Arc::new(Mutex::new(client));
-    let client_clone = client.clone();
 
+    subscriber_thread(client.clone(), conn_receiver);
+
+    Ok(client)
+}
+
+fn subscriber_thread(
+    client: Arc<Mutex<EspMqttClient<'static>>>,
+    conn_receiver: mpsc::Receiver<()>,
+) {
     thread::spawn(move || {
-        while receiver.recv().is_ok() {
+        while conn_receiver.recv().is_ok() {
             let topic = "doorsys/user";
             match client.lock().unwrap().subscribe(topic, QoS::AtLeastOnce) {
                 Ok(id) => log::info!("Subscribed to {topic} {id}"),
@@ -59,8 +65,6 @@ pub fn setup_mqtt(net_id: &str, user_db: UserDB) -> anyhow::Result<Arc<Mutex<Mqt
             };
         }
     });
-
-    Ok(client_clone)
 }
 
 fn route_message(topic: Option<&str>, data: &[u8], details: Details, user_db: &UserDB) {
