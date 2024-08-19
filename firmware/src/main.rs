@@ -227,6 +227,7 @@ fn health_check(net_id: &str, mqtt_client: Arc<Mutex<MqttClient>>) -> anyhow::Re
     let mqtt_client = mqtt_client.clone();
 
     let net_id = net_id.to_owned();
+    let version = built_info::GIT_VERSION.unwrap_or("");
 
     thread::spawn(move || loop {
         let time = systime.now().as_nanos();
@@ -235,7 +236,7 @@ fn health_check(net_id: &str, mqtt_client: Arc<Mutex<MqttClient>>) -> anyhow::Re
             let free = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
             let minimum = heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT);
             let largest_free = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
-            format!("heap,host={net_id} free={free},total={total},minimum={minimum},largest_free={largest_free} {time}")
+            format!("heap,host={net_id},version={version} free={free},total={total},minimum={minimum},largest_free={largest_free} {time}")
         };
         log::info!("{}", heap);
         if let Err(e) = mqtt_client.lock().unwrap().publish(
@@ -256,7 +257,7 @@ fn health_check(net_id: &str, mqtt_client: Arc<Mutex<MqttClient>>) -> anyhow::Re
                 let used = stats.used_entries;
                 let free = stats.free_entries;
                 let total = stats.total_entries;
-                format!("nvs,host={net_id} used={used},free={free},total={total} {time}")
+                format!("nvs,host={net_id},version={version} used={used},free={free},total={total} {time}")
             }
         };
         log::info!("{}", nvs);
@@ -281,6 +282,23 @@ fn main() -> anyhow::Result<()> {
     esp_idf_svc::sys::link_patches();
     // Bind the log crate to the ESP Logging facilities
     esp_idf_svc::log::EspLogger::initialize_default();
+
+    log::info!(
+        "Doorsys version {}, built for {} by {}.",
+        built_info::PKG_VERSION,
+        built_info::TARGET,
+        built_info::RUSTC_VERSION
+    );
+    if let (Some(v), Some(short_hash), Some(dirty)) = (
+        built_info::GIT_VERSION,
+        built_info::GIT_COMMIT_HASH_SHORT,
+        built_info::GIT_DIRTY,
+    ) {
+        log::info!("Version: {v} ({short_hash})");
+        if dirty {
+            log::warn!("Repo was dirty");
+        }
+    }
 
     // Installs the generic GPIO interrupt handler
     esp!(unsafe { gpio_install_isr_service(ESP_INTR_FLAG_IRAM as i32) })?;
@@ -315,4 +333,8 @@ fn main() -> anyhow::Result<()> {
     log::info!("Application fully functional");
 
     Ok(())
+}
+
+pub mod built_info {
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
